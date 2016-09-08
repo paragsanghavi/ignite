@@ -25,74 +25,76 @@ import org.apache.ignite.binary.BinaryWriter;
 import org.apache.ignite.binary.Binarylizable;
 import org.apache.ignite.internal.util.typedef.internal.S;
 
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.sql.Timestamp;
 
 /**
- * Web session lock info.
+ * Result of the {@link PlatformDotnetSessionLockProcessor} execution.
  */
-public class KeyValueDirtyTrackedCollection implements Binarylizable {
-    /** Entry order is important. */
-    private SortedMap<String, byte[]> entries;
+@SuppressWarnings({"AssignmentToDateFieldFromParameter", "ReturnOfDateField"})
+public class PlatformDotnetSessionLockResult implements Binarylizable {
+    /** Success flag. */
+    private boolean success;
 
-    /** Whether this is a diff. */
-    private boolean isDiff;
+    /** Data. */
+    private PlatformDotnetSessionData data;
+
+    /** Lock time. */
+    private Timestamp lockTime;
 
     /**
-     * Apply changes from another instance.
+     * Ctor.
      *
-     * @param other Items.
+     * @param success Success flag.
+     * @param data Session data.
+     * @param lockTime Lock time.
      */
-    public void applyChanges(KeyValueDirtyTrackedCollection other) {
-        assert other != null;
+    public PlatformDotnetSessionLockResult(boolean success, PlatformDotnetSessionData data, Timestamp lockTime) {
+        this.success = success;
+        this.data = data;
+        this.lockTime = lockTime;
+    }
 
-        if (!other.isDiff) {
-            // Not a diff: remove all
-            entries.clear();
-        }
+    /**
+     * @return Success flag.
+     */
+    public boolean success() {
+        return success;
+    }
 
-        for (Map.Entry<String, byte[]> e : other.entries.entrySet()) {
-            String key = e.getKey();
-            byte[] value = e.getValue();
+    /**
+     * @return Session state data.
+     */
+    public PlatformDotnetSessionData data() {
+        return data;
+    }
 
-            if (value != null)
-                entries.put(key, value);
-            else
-                entries.remove(key);   // Null value indicates removed key.
-        }
+    /**
+     * @return Lock time.
+     */
+    public Timestamp lockTime() {
+        return lockTime;
     }
 
     /** {@inheritDoc} */
     @Override public void writeBinary(BinaryWriter writer) throws BinaryObjectException {
         BinaryRawWriter raw = writer.rawWriter();
 
-        raw.writeBoolean(!isDiff);
-
-        raw.writeInt(entries.size());
-
-        for (Map.Entry<String, byte[]> e : entries.entrySet()) {
-            raw.writeString(e.getKey());
-            raw.writeByteArray(e.getValue());
-        }
+        raw.writeBoolean(success);
+        raw.writeObject(data);
+        raw.writeTimestamp(lockTime);
     }
 
     /** {@inheritDoc} */
     @Override public void readBinary(BinaryReader reader) throws BinaryObjectException {
         BinaryRawReader raw = reader.rawReader();
 
-        isDiff = !raw.readBoolean();
-
-        int count = raw.readInt();
-
-        entries = new TreeMap<>();
-
-        for (int i = 0; i < count; i++)
-            entries.put(raw.readString(), raw.readByteArray());
+        success = raw.readBoolean();
+        data = raw.readObject();
+        lockTime = raw.readTimestamp();
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(KeyValueDirtyTrackedCollection.class, this);
+        return S.toString(PlatformDotnetSessionLockResult.class, this);
     }
 }

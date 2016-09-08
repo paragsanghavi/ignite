@@ -22,43 +22,52 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
+import java.sql.Timestamp;
+import java.util.UUID;
 
 /**
- * Entry processor that unlocks web session data.
+ * Entry processor that locks web session data.
  */
-public class SetAndUnlockEntryProcessor implements CacheEntryProcessor<String, SessionStateData, Object> {
+public class PlatformDotnetSessionLockProcessor implements CacheEntryProcessor<String, PlatformDotnetSessionData, Object> {
     /** */
     private static final long serialVersionUID = 0L;
 
-    /** {@inheritDoc} */
-    @Override public Object process(MutableEntry<String, SessionStateData> entry, Object... args)
-        throws EntryProcessorException {
-        assert entry.exists();
+    UUID lockNodeId;
 
-        SessionStateData data = entry.getValue();
+    long lockId;
+
+    Timestamp lockTime;
+
+    public PlatformDotnetSessionLockProcessor(UUID lockNodeId, long lockId, Timestamp lockTime) {
+        this.lockNodeId = lockNodeId;
+        this.lockId = lockId;
+        this.lockTime = lockTime;
+    }
+
+    /** {@inheritDoc} */
+    @Override public Object process(MutableEntry<String, PlatformDotnetSessionData> entry, Object... args)
+        throws EntryProcessorException {
+        if (!entry.exists())
+            return null;
+
+        PlatformDotnetSessionData data = entry.getValue();
 
         assert data != null;
-        assert data.lockNodeId() != null;
 
-        SessionStateData newData = (SessionStateData)args[0];
+        if (data.isLocked())
+            return new PlatformDotnetSessionLockResult(false, null, data.lockTime());
 
-        if (!data.lockNodeId().equals(newData.lockNodeId()))
-            throw new IllegalStateException("Can not unlock session data: lock node id check failed.");
-
-        if (data.lockId() != newData.lockId())
-            throw new IllegalStateException("Can not unlock session data: lock id check failed.");
-
-        // Unlock.
-        data = data.updateAndUnlock(newData.items(), newData.staticObjects(), newData.timeout());
+        // Not locked: lock and return result
+        data = data.lock(lockNodeId, lockId, lockTime);
 
         // Apply.
         entry.setValue(data);
 
-        return null;
+        return new PlatformDotnetSessionLockResult(true, data, null);
     }
 
     /** {@inheritDoc */
     @Override public String toString() {
-        return S.toString(SetAndUnlockEntryProcessor.class, this);
+        return S.toString(PlatformDotnetSessionLockProcessor.class, this);
     }
 }

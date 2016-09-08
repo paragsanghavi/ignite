@@ -25,18 +25,18 @@ import org.apache.ignite.binary.BinaryWriter;
 import org.apache.ignite.binary.Binarylizable;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.jetbrains.annotations.Nullable;
 
 import java.sql.Timestamp;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Web session state data.
  */
 @SuppressWarnings({"ReturnOfDateField", "AssignmentToDateFieldFromParameter"})
-public class SessionStateData implements Binarylizable {
+public class PlatformDotnetSessionData implements Binarylizable {
     /** Items. */
-    private KeyValueDirtyTrackedCollection items;
+    private Map<String, byte[]> items;
 
     /** Static objects. */
     @GridToStringExclude
@@ -57,7 +57,7 @@ public class SessionStateData implements Binarylizable {
     /**
      * @return Items.
      */
-    public KeyValueDirtyTrackedCollection items() {
+    public Map<String, byte[]> items() {
         return items;
     }
 
@@ -103,19 +103,14 @@ public class SessionStateData implements Binarylizable {
         return lockTime != null;
     }
 
-    /**
-     * Set lock info.
-     *
-     * @param lock Lock.
-     */
-    public SessionStateData lock(SessionStateLockInfo lock) {
+    public PlatformDotnetSessionData lock(UUID lockNodeId, long lockId, Timestamp lockTime) {
         assert !isLocked();
 
-        SessionStateData res = copyWithoutLockInfo();
+        PlatformDotnetSessionData res = copyWithoutLockInfo();
 
-        res.lockId = lock.id();
-        res.lockNodeId = lock.nodeId();
-        res.lockTime = lock.time();
+        res.lockId = lockId;
+        res.lockNodeId = lockNodeId;
+        res.lockTime = lockTime;
 
         return res;
     }
@@ -127,7 +122,7 @@ public class SessionStateData implements Binarylizable {
      * @param lockId Lock ID.
      * @return Unlocked data.
      */
-    public SessionStateData unlock(UUID lockNodeId, long lockId) {
+    public PlatformDotnetSessionData unlock(UUID lockNodeId, long lockId) {
         assert isLocked();
 
         if (!this.lockNodeId.equals(lockNodeId))
@@ -149,13 +144,14 @@ public class SessionStateData implements Binarylizable {
      * @param timeout Timeout.
      * @return Result.
      */
-    public SessionStateData updateAndUnlock(UUID lockNodeId, long lockId, KeyValueDirtyTrackedCollection items,
+    public PlatformDotnetSessionData updateAndUnlock(UUID lockNodeId, long lockId, Map<String, byte[]> items,
         byte[] staticObjects, int timeout) {
         assert items != null;
 
-        SessionStateData res = unlock(lockNodeId, lockId);
+        PlatformDotnetSessionData res = unlock(lockNodeId, lockId);
 
-        res.items.applyChanges(items);
+        // TODO: Process new items. May be additional flag to clear all data will be required.
+
         res.staticObjects = staticObjects;
         res.timeout = timeout;
 
@@ -167,8 +163,8 @@ public class SessionStateData implements Binarylizable {
      *
      * @return Copied state data.
      */
-    private SessionStateData copyWithoutLockInfo() {
-        SessionStateData res = new SessionStateData();
+    private PlatformDotnetSessionData copyWithoutLockInfo() {
+        PlatformDotnetSessionData res = new PlatformDotnetSessionData();
 
         res.staticObjects = staticObjects;
         res.items = items;
@@ -203,6 +199,6 @@ public class SessionStateData implements Binarylizable {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(SessionStateData.class, this);
+        return S.toString(PlatformDotnetSessionData.class, this);
     }
 }

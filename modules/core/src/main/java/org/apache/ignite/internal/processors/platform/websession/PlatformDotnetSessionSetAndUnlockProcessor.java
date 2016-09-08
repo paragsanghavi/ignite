@@ -33,7 +33,7 @@ import java.util.UUID;
  * Processor to unlock and optionally update the session.
  */
 public class PlatformDotnetSessionSetAndUnlockProcessor implements
-    CacheEntryProcessor<String, SessionStateData, Void>, Binarylizable {
+    CacheEntryProcessor<String, PlatformDotnetSessionData, Void>, Binarylizable {
     /** Lock node ID. */
     private UUID lockNodeId;
 
@@ -97,11 +97,11 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
     }
 
     /** {@inheritDoc} */
-    @Override public Void process(MutableEntry<String, SessionStateData> entry, Object... args)
+    @Override public Void process(MutableEntry<String, PlatformDotnetSessionData> entry, Object... args)
         throws EntryProcessorException {
         assert entry.exists();
 
-        SessionStateData data = entry.getValue();
+        PlatformDotnetSessionData data = entry.getValue();
 
         assert data != null;
 

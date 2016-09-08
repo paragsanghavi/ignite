@@ -19,11 +19,12 @@ package org.apache.ignite.internal.processors.platform.cache;
 
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.internal.binary.BinaryRawReaderEx;
-import org.apache.ignite.internal.processors.platform.websession.LockEntryProcessor;
-import org.apache.ignite.internal.processors.platform.websession.SessionStateData;
-import org.apache.ignite.internal.processors.platform.websession.SessionStateLockInfo;
-import org.apache.ignite.internal.processors.platform.websession.SetAndUnlockEntryProcessor;
-import org.apache.ignite.internal.processors.platform.websession.UnlockEntryProcessor;
+import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionLockProcessor;
+import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionSetAndUnlockProcessor;
+
+import java.sql.Timestamp;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Custom entry processor invoker.
@@ -33,10 +34,7 @@ public class PlatformCacheInvoker {
     public static final int OP_SESSION_LOCK = 1;
 
     /** */
-    public static final int OP_SESSION_UNLOCK = 2;
-
-    /** */
-    public static final int OP_SESSION_SET_AND_UNLOCK = 3;
+    public static final int OP_SESSION_SET_AND_UNLOCK = 2;
 
     /**
      * Invokes the custom processor.
@@ -56,25 +54,33 @@ public class PlatformCacheInvoker {
 
         switch (opCode) {
             case OP_SESSION_LOCK: {
-                SessionStateLockInfo lockInfo = reader.readObject();
+                UUID lockNodeId = reader.readUuid();
+                long lockId = reader.readLong();
+                Timestamp lockTime = reader.readTimestamp();
 
-                res = cache.invoke(key, new LockEntryProcessor(), lockInfo);
-
-                break;
-            }
-
-            case OP_SESSION_UNLOCK: {
-                SessionStateLockInfo lockInfo = reader.readObject();
-
-                cache.invoke(key, new UnlockEntryProcessor(), lockInfo);
+                res = cache.invoke(key, new PlatformDotnetSessionLockProcessor(lockNodeId, lockId, lockTime));
 
                 break;
             }
 
             case OP_SESSION_SET_AND_UNLOCK:
-                SessionStateData data = reader.readObject();
+                UUID lockNodeId = reader.readUuid();
+                long lockId = reader.readLong();
 
-                cache.invoke(key, new SetAndUnlockEntryProcessor(), data);
+                PlatformDotnetSessionSetAndUnlockProcessor proc;
+
+                if (reader.readBoolean()) {
+
+                    Map<String, byte[]> items = null; // TODO: Read sorted map.
+                    byte[] staticData = reader.readByteArray();
+                    int timeout = reader.readInt();
+
+                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId, items, staticData, timeout);
+                }
+                else
+                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId);
+
+                cache.invoke(key, proc);
 
                 break;
         }
