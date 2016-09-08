@@ -123,10 +123,18 @@ public class SessionStateData implements Binarylizable {
     /**
      * Unlock session state data.
      *
+     * @param lockNodeId Lock node ID.
+     * @param lockId Lock ID.
      * @return Unlocked data.
      */
-    public SessionStateData unlock() {
+    public SessionStateData unlock(UUID lockNodeId, long lockId) {
         assert isLocked();
+
+        if (!this.lockNodeId.equals(lockNodeId))
+            throw new IllegalStateException("Can not unlock session data: lock node id check failed.");
+
+        if (this.lockId != lockId)
+            throw new IllegalStateException("Can not unlock session data: lock id check failed.");
 
         return copyWithoutLockInfo();
     }
@@ -134,15 +142,18 @@ public class SessionStateData implements Binarylizable {
     /**
      * Update session state and release the lock.
      *
+     * @param lockNodeId Lock node ID.
+     * @param lockId Lock ID.
      * @param items Items.
      * @param staticObjects Static objects.
      * @param timeout Timeout.
      * @return Result.
      */
-    public SessionStateData updateAndUnlock(KeyValueDirtyTrackedCollection items, byte[] staticObjects, int timeout) {
+    public SessionStateData updateAndUnlock(UUID lockNodeId, long lockId, KeyValueDirtyTrackedCollection items,
+        byte[] staticObjects, int timeout) {
         assert items != null;
 
-        SessionStateData res = unlock();
+        SessionStateData res = unlock(lockNodeId, lockId);
 
         res.items.applyChanges(items);
         res.staticObjects = staticObjects;
