@@ -38,14 +38,14 @@ namespace Apache.Ignite.Core.Impl.Cache
         IQueryCursor<T> QueryFields<T>(SqlFieldsQuery qry, Func<IBinaryRawReader, int, T> readerFunc);
 
         /// <summary>
-        /// Invokes a cache operation by code.
+        /// Invokes a cache extension.
         /// </summary>
         /// <typeparam name="T">The type of the result.</typeparam>
-        /// <param name="opCode">The operation code.</param>
+        /// <param name="opCode">The extension op code.</param>
         /// <param name="writeAction">The write action.</param>
         /// <returns>
         /// Result of the processing.
         /// </returns>
-        T Invoke<T>(CacheInvokeOp opCode, Action<IBinaryRawWriter> writeAction);
+        T InvokeExtension<T>(CacheInvokeOp opCode, Action<IBinaryRawWriter> writeAction);
     }
 }

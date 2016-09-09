@@ -431,7 +431,7 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private SessionStateLockResult LockItem(string key, long lockId)
         {
-            return ((ICacheInternal) Cache).Invoke<SessionStateLockResult>(CacheInvokeOp.SessionLock, w =>
+            return ((ICacheInternal) Cache).InvokeExtension<SessionStateLockResult>(CacheInvokeOp.SessionLock, w =>
             {
                 w.WriteString(key);
                 WriteLockInfo(w, lockId, true);
@@ -443,7 +443,7 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private void UnlockItem(string key, long lockId)
         {
-            ((ICacheInternal) Cache).Invoke<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
+            ((ICacheInternal) Cache).InvokeExtension<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
             {
                 w.WriteString(key);
                 w.WriteBoolean(false);  // Only unlock.
@@ -460,7 +460,7 @@ namespace Apache.Ignite.AspNet
 
             var cache = _expiryCacheHolder.GetCacheWithExpiry(data.Timeout * 60);
 
-            ((ICacheInternal) cache).Invoke<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
+            ((ICacheInternal) cache).InvokeExtension<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
             {
                 w.WriteString(key);
                 w.WriteBoolean(true);  // Unlock and update.

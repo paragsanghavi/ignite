@@ -18,7 +18,7 @@
 namespace Apache.Ignite.Core.Impl.Cache
 {
     /// <summary>
-    /// Op codes for <see cref="ICacheInternal.Invoke{T}"/>.
+    /// Op codes for <see cref="ICacheInternal.InvokeExtension{T}"/>.
     /// </summary>
     public enum CacheInvokeOp
     {
