@@ -74,16 +74,10 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
     /**
      * Constructor.
      *
-     * @param lockNodeId Lock node ID.
-     * @param lockId Lock ID.
-     * @param items Items.
-     * @param isDiff Whether items is a diff.
-     * @param staticData Static data.
-     * @param timeout Timeout.
+     * @param data Data.
      */
-    public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId,
-        Map<String, byte[]> items, boolean isDiff, byte[] staticData, int timeout) {
-        this(lockNodeId, lockId, true, items, isDiff, staticData, timeout);
+    public PlatformDotnetSessionSetAndUnlockProcessor(PlatformDotnetSessionData data) {
+        this(data.lockNodeId(), data.lockId(), true, data.items(), data.isDiff(), data.staticObjects(), data.timeout());
     }
 
     /**

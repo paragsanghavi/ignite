@@ -24,8 +24,6 @@ import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetS
 import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionSetAndUnlockProcessor;
 
 import java.sql.Timestamp;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -71,8 +69,7 @@ public class PlatformCacheInvoker {
                 if (reader.readBoolean()) {
                     PlatformDotnetSessionData data = reader.readObject();
 
-                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(data.lockNodeId(), data.lockId(),
-                        data.items(), data.isDiff(), data.staticObjects(), data.timeout());
+                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(data);
                 }
                 else {
                     UUID lockNodeId = reader.readUuid();
