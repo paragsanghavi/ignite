@@ -873,11 +873,11 @@ namespace Apache.Ignite.Core.Impl.Cache
         }
 
         /** <inheritDoc /> */
-        public T Invoke<T>(int opCode, Action<IBinaryRawWriter> writeAction)
+        public T Invoke<T>(CacheInvokeOp opCode, Action<IBinaryRawWriter> writeAction)
         {
             return DoOutInOpX((int) CacheOp.InvokeInternal, writer =>
                 {
-                    writer.WriteInt(opCode);
+                    writer.WriteInt((int) opCode);
                     writeAction(writer);
                 },
                 (input, res) => res == True ? Marshaller.Unmarshal<T>(input) : default(T), ReadException);

@@ -46,6 +46,6 @@ namespace Apache.Ignite.Core.Impl.Cache
         /// <returns>
         /// Result of the processing.
         /// </returns>
-        T Invoke<T>(int opCode, Action<IBinaryRawWriter> writeAction);
+        T Invoke<T>(CacheInvokeOp opCode, Action<IBinaryRawWriter> writeAction);
     }
 }

@@ -47,15 +47,6 @@ namespace Apache.Ignite.AspNet
     /// </summary>
     public class IgniteSessionStateStoreProvider : SessionStateStoreProviderBase
     {
-        /// <summary>
-        /// Op codes.
-        /// </summary>
-        private enum Op   // TODO: Move this to core to maintain a single list of codes.
-        {
-            Lock = 1,
-            SetAndUnlock = 2
-        }
-
         /** Application id config parameter. */
         private const string ApplicationId = "applicationId";
 
@@ -440,7 +431,7 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private SessionStateLockResult LockItem(string key, long lockId)
         {
-            return ((ICacheInternal) Cache).Invoke<SessionStateLockResult>((int) Op.Lock, w =>
+            return ((ICacheInternal) Cache).Invoke<SessionStateLockResult>(CacheInvokeOp.SessionLock, w =>
             {
                 w.WriteString(key);
                 WriteLockInfo(w, lockId, true);
@@ -452,7 +443,7 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private void UnlockItem(string key, long lockId)
         {
-            ((ICacheInternal) Cache).Invoke<object>((int) Op.SetAndUnlock, w =>
+            ((ICacheInternal) Cache).Invoke<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
             {
                 w.WriteString(key);
                 w.WriteBoolean(false);  // Only unlock.
@@ -469,7 +460,7 @@ namespace Apache.Ignite.AspNet
 
             var cache = _expiryCacheHolder.GetCacheWithExpiry(data.Timeout * 60);
 
-            ((ICacheInternal) cache).Invoke<object>((int) Op.SetAndUnlock, w =>
+            ((ICacheInternal) cache).Invoke<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
             {
                 w.WriteString(key);
                 w.WriteBoolean(true);  // Unlock and update.
