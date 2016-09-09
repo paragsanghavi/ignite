@@ -196,7 +196,7 @@ public class PlatformCache extends PlatformAbstractTarget {
     public static final int OP_LOAD_ALL = 40;
 
     /** */
-    public static final int OP_INVOKE_INTERNAL = 41;
+    public static final int OP_EXTENSION = 41;
 
     /** Underlying JCache in binary mode. */
     private final IgniteCacheProxy cache;
@@ -457,14 +457,17 @@ public class PlatformCache extends PlatformAbstractTarget {
                     });
                 }
 
-                case OP_INVOKE_INTERNAL:
-                    return writeResult(mem, PlatformCacheInvoker.invoke(reader, cacheRaw));
-
                 case OP_LOCK:
                     return registerLock(cache.lock(reader.readObjectDetached()));
 
                 case OP_LOCK_ALL:
                     return registerLock(cache.lockAll(PlatformUtils.readCollection(reader)));
+
+                case OP_EXTENSION:
+                    // TODO: Refactor this
+                    // Either inject this logic somehow (use negative op ids or something)
+                    // Or inherit the class (needs a new JNI call)
+                    return writeResult(mem, PlatformCacheInvoker.invoke(reader, cacheRaw));
             }
         }
         catch (Exception e) {
