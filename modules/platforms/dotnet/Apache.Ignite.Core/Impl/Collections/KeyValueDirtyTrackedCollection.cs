@@ -59,7 +59,7 @@ namespace Apache.Ignite.Core.Impl.Collections
         {
             Debug.Assert(reader != null);
 
-            _isDiff = !reader.ReadBoolean();
+            _isDiff = reader.ReadBoolean();
 
             var count = reader.ReadInt();
 
@@ -191,7 +191,7 @@ namespace Apache.Ignite.Core.Impl.Collections
             if (_isNew || _dirtyAll || !WriteChangesOnly || (_removedKeys == null && _list.All(x => x.IsDirty)))
             {
                 // Write in full mode.
-                raw.WriteBoolean(true);
+                raw.WriteBoolean(false);
                 raw.WriteInt(_list.Count);
 
                 foreach (var entry in _list)
@@ -205,7 +205,7 @@ namespace Apache.Ignite.Core.Impl.Collections
             else
             {
                 // Write in diff mode.
-                raw.WriteBoolean(false);
+                raw.WriteBoolean(true);
 
                 var stream = wr.Stream;
 

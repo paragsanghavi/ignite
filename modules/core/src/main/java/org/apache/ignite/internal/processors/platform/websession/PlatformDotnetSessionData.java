@@ -203,6 +203,7 @@ public class PlatformDotnetSessionData implements Binarylizable {
         res.staticObjects = staticObjects;
         res.items = items;
         res.timeout = timeout;
+        res.isDiff = isDiff;
 
         return res;
     }
@@ -237,7 +238,7 @@ public class PlatformDotnetSessionData implements Binarylizable {
         lockTime = raw.readTimestamp();
 
         items = new TreeMap<>();
-        isDiff = !raw.readBoolean();
+        isDiff = raw.readBoolean();
         int count = raw.readInt();
 
         for (int i = 0; i < count; i++)
