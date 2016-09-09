@@ -471,6 +471,9 @@ public class PlatformCache extends PlatformAbstractTarget {
                 case OP_EXTENSION:
                     int opCode = reader.readInt();
 
+                    if (extensions == null)
+                        throw new IgniteCheckedException("Cache extensions are not defined.");
+
                     for (PlatformCacheExtension extension : extensions) {
                         PlatformCacheExtensionResult res = extension.invoke(opCode, reader, cacheRaw);
 
