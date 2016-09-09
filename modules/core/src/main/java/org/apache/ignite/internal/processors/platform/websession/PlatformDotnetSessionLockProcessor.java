@@ -28,16 +28,27 @@ import java.util.UUID;
 /**
  * Entry processor that locks web session data.
  */
+@SuppressWarnings("AssignmentToDateFieldFromParameter")
 public class PlatformDotnetSessionLockProcessor implements CacheEntryProcessor<String, PlatformDotnetSessionData, Object> {
     /** */
     private static final long serialVersionUID = 0L;
 
-    UUID lockNodeId;
+    /** Lock node id. */
+    private UUID lockNodeId;
 
-    long lockId;
+    /** Lock id. */
+    private long lockId;
 
-    Timestamp lockTime;
+    /** Lock time. */
+    private Timestamp lockTime;
 
+    /**
+     * Ctor.
+     *
+     * @param lockNodeId Lock node id.
+     * @param lockId Lock id.
+     * @param lockTime Lock time.
+     */
     public PlatformDotnetSessionLockProcessor(UUID lockNodeId, long lockId, Timestamp lockTime) {
         this.lockNodeId = lockNodeId;
         this.lockId = lockId;

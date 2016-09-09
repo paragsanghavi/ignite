@@ -37,6 +37,9 @@ import java.util.UUID;
  */
 public class PlatformDotnetSessionSetAndUnlockProcessor implements
     CacheEntryProcessor<String, PlatformDotnetSessionData, Void>, Binarylizable {
+    /** */
+    private static final long serialVersionUID = 0L;
+
     /** Lock node ID. */
     private UUID lockNodeId;
 
