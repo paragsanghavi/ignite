@@ -362,12 +362,6 @@ namespace Apache.Ignite.AspNet
             var data = new SessionStateData { Timeout = timeout };
 
             cache[key] = data;
-
-            //((ICacheInternal) cache).Invoke<object>((int) Op.CreateEmpty, w =>
-            //{
-            //    w.WriteString(key);
-            //    w.WriteInt(timeout);
-            //});
         }
 
         /// <summary>
