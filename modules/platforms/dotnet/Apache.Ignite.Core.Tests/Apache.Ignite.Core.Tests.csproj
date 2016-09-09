@@ -64,7 +64,6 @@
     <Compile Include="AspNet\IgniteSessionStateItemCollectionTest.cs" />
     <Compile Include="AspNet\IgniteSessionStateStoreDataTest.cs" />
     <Compile Include="AspNet\IgniteSessionStateStoreProviderTest.cs" />
-    <Compile Include="AspNet\SessionStateLockInfoTest.cs" />
     <Compile Include="Binary\BinaryReaderWriterTest.cs" />
     <Compile Include="Binary\IO\BinaryStreamsTest.cs" />
     <Compile Include="Binary\JavaTypeMappingTest.cs" />

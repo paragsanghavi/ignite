@@ -26,6 +26,7 @@ namespace Apache.Ignite.AspNet
     using System.Web.SessionState;
     using Apache.Ignite.AspNet.Impl;
     using Apache.Ignite.Core;
+    using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache;
     using Apache.Ignite.Core.Impl.AspNet;
     using Apache.Ignite.Core.Impl.Cache;
@@ -49,11 +50,11 @@ namespace Apache.Ignite.AspNet
         /// <summary>
         /// Op codes.
         /// </summary>
-        private enum Op
+        private enum Op   // TODO: Move this to core to maintain a single list of codes.
         {
             Lock = 1,
             Unlock = 2,
-            SetAndUnlock = 3
+            SetAndUnlock = 3,
         }
 
         /** Application id config parameter. */
@@ -357,9 +358,17 @@ namespace Apache.Ignite.AspNet
 
             var cache = _expiryCacheHolder.GetCacheWithExpiry((long) timeout * 60);
 
-            var data = new SessionStateData {Timeout =  timeout};
+            var key = GetKey(id);
 
-            cache[GetKey(id)] = data;
+            var data = new SessionStateData { Timeout = timeout };
+
+            cache[key] = data;
+
+            //((ICacheInternal) cache).Invoke<object>((int) Op.CreateEmpty, w =>
+            //{
+            //    w.WriteString(key);
+            //    w.WriteInt(timeout);
+            //});
         }
 
         /// <summary>
@@ -396,11 +405,15 @@ namespace Apache.Ignite.AspNet
         }
 
         /// <summary>
-        /// Gets the lock info.
+        /// Writes the lock info.
         /// </summary>
-        private SessionStateLockInfo GetLockInfo(long lockId)
+        private void WriteLockInfo(IBinaryRawWriter writer, long lockId, bool writeTime = false)
         {
-            return new SessionStateLockInfo(lockId, Cache.Ignite.GetCluster().GetLocalNode().Id, DateTime.UtcNow);
+            writer.WriteGuid(Cache.Ignite.GetCluster().GetLocalNode().Id);
+            writer.WriteLong(lockId);
+
+            if (writeTime)
+                writer.WriteTimestamp(DateTime.UtcNow);
         }
 
         /// <summary>
@@ -437,7 +450,7 @@ namespace Apache.Ignite.AspNet
             return ((ICacheInternal) Cache).Invoke<SessionStateLockResult>((int) Op.Lock, w =>
             {
                 w.WriteString(key);
-                w.WriteObject(GetLockInfo(lockId));
+                WriteLockInfo(w, lockId, true);
             });
         }
 
@@ -448,8 +461,9 @@ namespace Apache.Ignite.AspNet
         {
             ((ICacheInternal) Cache).Invoke<object>((int) Op.Unlock, w =>
             {
+                WriteLockInfo(w, lockId);
+                w.WriteBoolean(false);  // Only unlock.
                 w.WriteString(key);
-                w.WriteObject(GetLockInfo(lockId));
             });
         }
 
@@ -464,8 +478,15 @@ namespace Apache.Ignite.AspNet
 
             ((ICacheInternal) cache).Invoke<object>((int) Op.SetAndUnlock, w =>
             {
+                WriteLockInfo(w, data.LockId);
+                w.WriteBoolean(true);  // Unlock and update.
                 w.WriteString(key);
-                w.WriteObject(data);
+
+                // TODO: Refactor
+                data.Items.WriteBinary((IBinaryWriter) w);
+
+                w.WriteByteArray(data.StaticObjects);
+                w.WriteInt(data.Timeout);
             });
         }
     }

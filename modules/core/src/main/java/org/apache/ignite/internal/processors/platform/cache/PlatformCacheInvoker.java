@@ -19,7 +19,7 @@ package org.apache.ignite.internal.processors.platform.cache;
 
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryRawReader;
-import org.apache.ignite.internal.binary.BinaryRawReaderEx;
+import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionData;
 import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionLockProcessor;
 import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionSetAndUnlockProcessor;
 

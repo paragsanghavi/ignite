@@ -35,13 +35,13 @@ namespace Apache.Ignite.Core.Impl.AspNet
         /// Initializes a new instance of the <see cref="SessionStateData"/> class.
         /// </summary>
         /// <param name="reader">The reader.</param>
-        internal SessionStateData(IBinaryRawReader reader)
+        internal SessionStateData(BinaryReader reader)
         {
             Timeout = reader.ReadInt();
             LockNodeId = reader.ReadGuid();
             LockId = reader.ReadLong();
             LockTime = reader.ReadTimestamp();
-            _items = reader.ReadObject<KeyValueDirtyTrackedCollection>();
+            _items = new KeyValueDirtyTrackedCollection(reader);
             StaticObjects = reader.ReadByteArray();
         }
 
@@ -98,7 +98,7 @@ namespace Apache.Ignite.Core.Impl.AspNet
             raw.WriteGuid(LockNodeId);
             raw.WriteLong(LockId);
             raw.WriteTimestamp(LockTime);
-            raw.WriteObject(Items);
+            Items.WriteBinary(writer);
             raw.WriteByteArray(StaticObjects);
         }
     }

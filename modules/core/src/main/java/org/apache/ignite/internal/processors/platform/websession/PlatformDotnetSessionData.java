@@ -103,6 +103,24 @@ public class PlatformDotnetSessionData implements Binarylizable {
         return lockTime != null;
     }
 
+    /**
+     * Ctor.
+     *
+     * @param timeout Timeout.
+     */
+    public PlatformDotnetSessionData(int timeout) {
+        this.timeout = timeout;
+    }
+
+    /**
+     * Locks the session state data.
+     *
+     * @param lockNodeId Lock node ID.
+     * @param lockId Lock ID.
+     * @param lockTime Lock time.
+     *
+     * @return Unlocked data copy.
+     */
     public PlatformDotnetSessionData lock(UUID lockNodeId, long lockId, Timestamp lockTime) {
         assert !isLocked();
 
@@ -116,11 +134,12 @@ public class PlatformDotnetSessionData implements Binarylizable {
     }
 
     /**
-     * Unlock session state data.
+     * Unlocks the session state data.
      *
      * @param lockNodeId Lock node ID.
      * @param lockId Lock ID.
-     * @return Unlocked data.
+     *
+     * @return Unlocked data copy.
      */
     public PlatformDotnetSessionData unlock(UUID lockNodeId, long lockId) {
         assert isLocked();
@@ -177,11 +196,10 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @return Copied state data.
      */
     private PlatformDotnetSessionData copyWithoutLockInfo() {
-        PlatformDotnetSessionData res = new PlatformDotnetSessionData();
+        PlatformDotnetSessionData res = new PlatformDotnetSessionData(timeout);
 
         res.staticObjects = staticObjects;
         res.items = items;
-        res.timeout = timeout;
 
         return res;
     }
