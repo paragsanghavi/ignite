@@ -28,6 +28,7 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -37,6 +38,9 @@ import java.util.UUID;
 public class PlatformDotnetSessionData implements Binarylizable {
     /** Items. */
     private Map<String, byte[]> items;
+
+    /** Diff flag. */
+    private boolean isDiff;
 
     /** Static objects. */
     @GridToStringExclude
@@ -59,6 +63,13 @@ public class PlatformDotnetSessionData implements Binarylizable {
      */
     public Map<String, byte[]> items() {
         return items;
+    }
+
+    /**
+     * @return Diff flag.
+     */
+    public boolean isDiff() {
+        return isDiff;
     }
 
     /**
@@ -101,15 +112,6 @@ public class PlatformDotnetSessionData implements Binarylizable {
      */
     public boolean isLocked() {
         return lockTime != null;
-    }
-
-    /**
-     * Ctor.
-     *
-     * @param timeout Timeout.
-     */
-    public PlatformDotnetSessionData(int timeout) {
-        this.timeout = timeout;
     }
 
     /**
@@ -196,10 +198,11 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @return Copied state data.
      */
     private PlatformDotnetSessionData copyWithoutLockInfo() {
-        PlatformDotnetSessionData res = new PlatformDotnetSessionData(timeout);
+        PlatformDotnetSessionData res = new PlatformDotnetSessionData();
 
         res.staticObjects = staticObjects;
         res.items = items;
+        res.timeout = timeout;
 
         return res;
     }
@@ -212,7 +215,15 @@ public class PlatformDotnetSessionData implements Binarylizable {
         raw.writeUuid(lockNodeId);
         raw.writeLong(lockId);
         raw.writeTimestamp(lockTime);
-        raw.writeObject(items);
+
+        raw.writeBoolean(isDiff);
+        raw.writeInt(items.size());
+
+        for (Map.Entry<String, byte[]> e : items.entrySet()) {
+            raw.writeString(e.getKey());
+            raw.writeByteArray(e.getValue());
+        }
+
         raw.writeByteArray(staticObjects);
     }
 
@@ -224,7 +235,14 @@ public class PlatformDotnetSessionData implements Binarylizable {
         lockNodeId = raw.readUuid();
         lockId = raw.readLong();
         lockTime = raw.readTimestamp();
-        items = raw.readObject();
+
+        items = new TreeMap<>();
+        isDiff = !raw.readBoolean();
+        int count = raw.readInt();
+
+        for (int i = 0; i < count; i++)
+            items.put(raw.readString(), raw.readByteArray());
+
         staticObjects = raw.readByteArray();
     }
 

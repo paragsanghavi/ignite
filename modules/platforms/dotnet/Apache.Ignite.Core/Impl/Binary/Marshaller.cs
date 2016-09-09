@@ -596,8 +596,8 @@ namespace Apache.Ignite.Core.Impl.Binary
             AddSystemType(0, r => new AffinityKey(r), "affKey");
             AddSystemType(BinaryUtils.TypePlatformJavaObjectFactoryProxy, r => new PlatformJavaObjectFactoryProxy());
             AddSystemType(0, r => new ObjectInfoHolder(r));
-            AddSystemType(0, r => new SessionStateData(r), "PlatformDotnetSessionData");
-            AddSystemType(0, r => new SessionStateLockResult(r), "PlatformDotnetSessionLockResult");
+            AddSystemType(0, r => new SessionStateData(r), typeNameOverride: "PlatformDotnetSessionData");
+            AddSystemType(0, r => new SessionStateLockResult(r), typeNameOverride: "PlatformDotnetSessionLockResult");
         }
     }
 }

@@ -66,29 +66,20 @@ public class PlatformCacheInvoker {
             }
 
             case OP_SESSION_SET_AND_UNLOCK:
-                UUID lockNodeId = reader.readUuid();
-                long lockId = reader.readLong();
-
                 PlatformDotnetSessionSetAndUnlockProcessor proc;
 
                 if (reader.readBoolean()) {
-                    boolean isDiff = !reader.readBoolean();
+                    PlatformDotnetSessionData data = reader.readObject();
 
-                    int count = reader.readInt();
-
-                    Map<String, byte[]> entries = new TreeMap<>();
-
-                    for (int i = 0; i < count; i++)
-                        entries.put(reader.readString(), reader.readByteArray());
-
-                    byte[] staticData = reader.readByteArray();
-                    int timeout = reader.readInt();
-
-                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId, entries, isDiff,
-                        staticData, timeout);
+                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(data.lockNodeId(), data.lockId(), data.items(), data.isDiff(),
+                        data.staticObjects(), data.timeout());
                 }
-                else
+                else {
+                    UUID lockNodeId = reader.readUuid();
+                    long lockId = reader.readLong();
+
                     proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId);
+                }
 
                 cache.invoke(key, proc);
 

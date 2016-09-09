@@ -461,8 +461,8 @@ namespace Apache.Ignite.AspNet
         {
             ((ICacheInternal) Cache).Invoke<object>((int) Op.Unlock, w =>
             {
-                WriteLockInfo(w, lockId);
                 w.WriteBoolean(false);  // Only unlock.
+                WriteLockInfo(w, lockId);
                 w.WriteString(key);
             });
         }
@@ -478,15 +478,9 @@ namespace Apache.Ignite.AspNet
 
             ((ICacheInternal) cache).Invoke<object>((int) Op.SetAndUnlock, w =>
             {
-                WriteLockInfo(w, data.LockId);
                 w.WriteBoolean(true);  // Unlock and update.
                 w.WriteString(key);
-
-                // TODO: Refactor
-                data.Items.WriteBinary((IBinaryWriter) w);
-
-                w.WriteByteArray(data.StaticObjects);
-                w.WriteInt(data.Timeout);
+                w.WriteObject(data);
             });
         }
     }
