@@ -62,6 +62,6 @@ namespace Apache.Ignite.Core.Impl.Cache
         Replace3 = 38,
         GetConfig = 39,
         LoadAll = 40,
-        InvokeInternal = 41
+        Extension = 41
     }
 }

@@ -875,7 +875,7 @@ namespace Apache.Ignite.Core.Impl.Cache
         /** <inheritDoc /> */
         public T Invoke<T>(CacheInvokeOp opCode, Action<IBinaryRawWriter> writeAction)
         {
-            return DoOutInOpX((int) CacheOp.InvokeInternal, writer =>
+            return DoOutInOpX((int) CacheOp.Extension, writer =>
                 {
                     writer.WriteInt((int) opCode);
                     writeAction(writer);
