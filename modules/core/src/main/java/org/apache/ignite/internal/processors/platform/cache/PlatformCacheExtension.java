@@ -24,5 +24,14 @@ import org.apache.ignite.binary.BinaryRawReader;
  * Platform cache extension.
  */
 public interface PlatformCacheExtension {
+    /**
+     * Invokes the extension.
+     *
+     * @param opCode Operation code.
+     * @param reader Reader.
+     * @param cache Cache.
+     *
+     * @return Invocation result: whether this extension handled the operation and resulting object.
+     */
     PlatformCacheExtensionResult invoke(int opCode, BinaryRawReader reader, IgniteCache cache);
 }
