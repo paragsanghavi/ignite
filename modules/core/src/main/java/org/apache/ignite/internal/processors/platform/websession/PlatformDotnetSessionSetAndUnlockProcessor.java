@@ -46,6 +46,9 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
     /** Data. */
     private Map<String, byte[]> items;
 
+    /** Whether items collection represents a diff. */
+    private boolean isDiff;
+
     /** Static data. */
     private byte[] staticData;
 
@@ -59,7 +62,7 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
      * @param lockId Lock ID.
      */
     public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId) {
-        this(lockNodeId, lockId, false, null, null, -1);
+        this(lockNodeId, lockId, false, null, false, null, -1);
     }
 
     /**
@@ -68,12 +71,13 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
      * @param lockNodeId Lock node ID.
      * @param lockId Lock ID.
      * @param items Items.
+     * @param isDiff Whether items is a diff.
      * @param staticData Static data.
      * @param timeout Timeout.
      */
     public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId,
-        Map<String, byte[]> items, byte[] staticData, int timeout) {
-        this(lockNodeId, lockId, true, items, staticData, timeout);
+        Map<String, byte[]> items, boolean isDiff, byte[] staticData, int timeout) {
+        this(lockNodeId, lockId, true, items, isDiff, staticData, timeout);
     }
 
     /**
@@ -83,15 +87,17 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
      * @param lockId Lock ID.
      * @param update Whether to perform update.
      * @param items Items.
+     * @param isDiff Whether items is a diff.
      * @param staticData Static data.
      * @param timeout Timeout.
      */
     public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId, boolean update,
-        Map<String, byte[]> items, byte[] staticData, int timeout) {
+        Map<String, byte[]> items, boolean isDiff, byte[] staticData, int timeout) {
         this.lockNodeId = lockNodeId;
         this.lockId = lockId;
         this.update = update;
         this.items = items;
+        this.isDiff = isDiff;
         this.staticData = staticData;
         this.timeout = timeout;
     }
@@ -106,10 +112,9 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
         assert data != null;
 
         // Unlock and update.
-        if (update)
-            data = data.updateAndUnlock(lockNodeId, lockId, items, staticData, timeout);
-        else
-            data = data.unlock(lockNodeId, lockId);
+        data = update
+            ? data.updateAndUnlock(lockNodeId, lockId, items, isDiff, staticData, timeout)
+            : data.unlock(lockNodeId, lockId);
 
         // Apply.
         entry.setValue(data);

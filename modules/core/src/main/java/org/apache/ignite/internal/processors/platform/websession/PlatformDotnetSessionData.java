@@ -145,12 +145,25 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @return Result.
      */
     public PlatformDotnetSessionData updateAndUnlock(UUID lockNodeId, long lockId, Map<String, byte[]> items,
-        byte[] staticObjects, int timeout) {
+        boolean isDiff, byte[] staticObjects, int timeout) {
         assert items != null;
 
         PlatformDotnetSessionData res = unlock(lockNodeId, lockId);
 
-        // TODO: Process new items. May be additional flag to clear all data will be required.
+        if (!isDiff) {
+            // Not a diff: remove all
+            this.items.clear();
+        }
+
+        for (Map.Entry<String, byte[]> e : items.entrySet()) {
+            String key = e.getKey();
+            byte[] value = e.getValue();
+
+            if (value != null)
+                this.items.put(key, value);
+            else
+                this.items.remove(key);   // Null value indicates removed key.
+        }
 
         res.staticObjects = staticObjects;
         res.timeout = timeout;

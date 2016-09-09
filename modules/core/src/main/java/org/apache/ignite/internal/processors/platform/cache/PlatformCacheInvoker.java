@@ -18,12 +18,14 @@
 package org.apache.ignite.internal.processors.platform.cache;
 
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryRawReader;
 import org.apache.ignite.internal.binary.BinaryRawReaderEx;
 import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionLockProcessor;
 import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionSetAndUnlockProcessor;
 
 import java.sql.Timestamp;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -45,7 +47,7 @@ public class PlatformCacheInvoker {
      * @return Result.
      */
     @SuppressWarnings("unchecked")
-    public static Object invoke(BinaryRawReaderEx reader, IgniteCache cache) {
+    public static Object invoke(BinaryRawReader reader, IgniteCache cache) {
         int opCode = reader.readInt();
 
         String key = reader.readString();
@@ -70,12 +72,20 @@ public class PlatformCacheInvoker {
                 PlatformDotnetSessionSetAndUnlockProcessor proc;
 
                 if (reader.readBoolean()) {
+                    boolean isDiff = !reader.readBoolean();
 
-                    Map<String, byte[]> items = null; // TODO: Read sorted map.
+                    int count = reader.readInt();
+
+                    Map<String, byte[]> entries = new TreeMap<>();
+
+                    for (int i = 0; i < count; i++)
+                        entries.put(reader.readString(), reader.readByteArray());
+
                     byte[] staticData = reader.readByteArray();
                     int timeout = reader.readInt();
 
-                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId, items, staticData, timeout);
+                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId, entries, isDiff,
+                        staticData, timeout);
                 }
                 else
                     proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId);
