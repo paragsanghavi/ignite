@@ -71,8 +71,8 @@ public class PlatformCacheInvoker {
                 if (reader.readBoolean()) {
                     PlatformDotnetSessionData data = reader.readObject();
 
-                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(data.lockNodeId(), data.lockId(), data.items(), data.isDiff(),
-                        data.staticObjects(), data.timeout());
+                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(data.lockNodeId(), data.lockId(),
+                        data.items(), data.isDiff(), data.staticObjects(), data.timeout());
                 }
                 else {
                     UUID lockNodeId = reader.readUuid();

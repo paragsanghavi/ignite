@@ -53,8 +53,7 @@ namespace Apache.Ignite.AspNet
         private enum Op   // TODO: Move this to core to maintain a single list of codes.
         {
             Lock = 1,
-            Unlock = 2,
-            SetAndUnlock = 3,
+            SetAndUnlock = 2
         }
 
         /** Application id config parameter. */
@@ -459,7 +458,7 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private void UnlockItem(string key, long lockId)
         {
-            ((ICacheInternal) Cache).Invoke<object>((int) Op.Unlock, w =>
+            ((ICacheInternal) Cache).Invoke<object>((int) Op.SetAndUnlock, w =>
             {
                 w.WriteString(key);
                 w.WriteBoolean(false);  // Only unlock.
