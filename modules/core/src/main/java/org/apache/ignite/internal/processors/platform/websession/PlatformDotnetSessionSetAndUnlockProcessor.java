@@ -18,6 +18,8 @@
 package org.apache.ignite.internal.processors.platform.websession;
 
 import org.apache.ignite.binary.BinaryObjectException;
+import org.apache.ignite.binary.BinaryRawReader;
+import org.apache.ignite.binary.BinaryRawWriter;
 import org.apache.ignite.binary.BinaryReader;
 import org.apache.ignite.binary.BinaryWriter;
 import org.apache.ignite.binary.Binarylizable;
@@ -27,6 +29,7 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /**
@@ -124,12 +127,46 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
 
     /** {@inheritDoc} */
     @Override public void writeBinary(BinaryWriter writer) throws BinaryObjectException {
-        // TODO
+        BinaryRawWriter raw = writer.rawWriter();
+
+        raw.writeUuid(lockNodeId);
+        raw.writeLong(lockId);
+        raw.writeBoolean(update);
+        raw.writeBoolean(isDiff);
+        raw.writeByteArray(staticData);
+        raw.writeInt(timeout);
+
+        if (items != null) {
+            raw.writeInt(items.size());
+
+            for (Map.Entry<String, byte[]> e : items.entrySet()) {
+                raw.writeString(e.getKey());
+                raw.writeByteArray(e.getValue());
+            }
+        }
+        else
+            raw.writeInt(-1);
     }
 
     /** {@inheritDoc} */
     @Override public void readBinary(BinaryReader reader) throws BinaryObjectException {
-        // TODO
+        BinaryRawReader raw = reader.rawReader();
+
+        lockNodeId = raw.readUuid();
+        lockId = raw.readLong();
+        update = raw.readBoolean();
+        isDiff = raw.readBoolean();
+        staticData = raw.readByteArray();
+        timeout = raw.readInt();
+
+        int cnt = raw.readInt();
+
+        if (cnt >= 0) {
+            items = new TreeMap<>();
+
+            for (int i = 0; i < cnt; i++)
+                items.put(raw.readString(), raw.readByteArray());
+        }
     }
 
     /** {@inheritDoc} */

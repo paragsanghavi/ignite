@@ -20,7 +20,6 @@ namespace Apache.Ignite.Core.Impl.Cache
     using System;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache.Query;
-    using Apache.Ignite.Core.Impl.Binary;
 
     /// <summary>
     /// Extended Cache interface for internal needs.
