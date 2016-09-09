@@ -36,6 +36,7 @@ import org.apache.ignite.internal.processors.cache.IgniteCacheProxy;
 import org.apache.ignite.internal.processors.datastreamer.DataStreamerImpl;
 import org.apache.ignite.internal.processors.datastructures.GridCacheAtomicLongImpl;
 import org.apache.ignite.internal.processors.platform.cache.PlatformCache;
+import org.apache.ignite.internal.processors.platform.cache.PlatformCacheExtension;
 import org.apache.ignite.internal.processors.platform.cache.affinity.PlatformAffinity;
 import org.apache.ignite.internal.processors.platform.cache.store.PlatformCacheStore;
 import org.apache.ignite.internal.processors.platform.cluster.PlatformClusterGroup;
@@ -53,6 +54,7 @@ import org.apache.ignite.internal.processors.platform.services.PlatformServices;
 import org.apache.ignite.internal.processors.platform.transactions.PlatformTransactions;
 import org.apache.ignite.internal.processors.platform.utils.PlatformConfigurationUtils;
 import org.apache.ignite.internal.processors.platform.utils.PlatformUtils;
+import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionCacheExtension;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteFuture;
@@ -93,6 +95,9 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
 
     /** Whether processor if stopped (or stopping). */
     private volatile boolean stopped;
+
+    /** Session state extension. */
+    private final PlatformCacheExtension sessionExt = new PlatformDotnetSessionCacheExtension();
 
     /**
      * Constructor.
@@ -211,7 +216,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
         if (cache == null)
             throw new IllegalArgumentException("Cache doesn't exist: " + name);
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -220,7 +225,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
 
         assert cache != null;
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -229,7 +234,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
 
         assert cache != null;
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -241,7 +246,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
             ? (IgniteCacheProxy)ctx.grid().createCache(cfg, PlatformConfigurationUtils.readNearConfiguration(reader))
             : (IgniteCacheProxy)ctx.grid().createCache(cfg);
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -254,7 +259,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
                     PlatformConfigurationUtils.readNearConfiguration(reader))
             : (IgniteCacheProxy)ctx.grid().getOrCreateCache(cfg);
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -408,7 +413,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
 
         IgniteCacheProxy cache = (IgniteCacheProxy)ctx.grid().createNearCache(cacheName, cfg);
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -417,7 +422,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
 
         IgniteCacheProxy cache = (IgniteCacheProxy)ctx.grid().getOrCreateNearCache(cacheName, cfg);
 
-        return new PlatformCache(platformCtx, cache, false);
+        return createPlatformCache(cache);
     }
 
     /** {@inheritDoc} */
@@ -470,6 +475,13 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
             default:
                 assert false;
         }
+    }
+
+    /**
+     * Creates new platform cache.
+     */
+    private PlatformTarget createPlatformCache(IgniteCacheProxy cache) {
+        return new PlatformCache(platformCtx, cache, false, sessionExt);
     }
 
     /**

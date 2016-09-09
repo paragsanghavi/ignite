@@ -29,7 +29,7 @@ import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.cache.query.TextQuery;
-import org.apache.ignite.configuration.*;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.binary.BinaryRawReaderEx;
 import org.apache.ignite.internal.binary.BinaryRawWriterEx;
@@ -53,8 +53,8 @@ import org.apache.ignite.internal.processors.platform.utils.PlatformWriterClosur
 import org.apache.ignite.internal.util.GridConcurrentFactory;
 import org.apache.ignite.internal.util.future.IgniteFutureImpl;
 import org.apache.ignite.internal.util.typedef.C1;
-import org.apache.ignite.lang.IgniteBiInClosure;
 import org.apache.ignite.internal.util.typedef.X;
+import org.apache.ignite.lang.IgniteBiInClosure;
 import org.apache.ignite.lang.IgniteFuture;
 import org.jetbrains.annotations.Nullable;
 
@@ -222,6 +222,9 @@ public class PlatformCache extends PlatformAbstractTarget {
     /** Lock ID sequence. */
     private static final AtomicLong LOCK_ID_GEN = new AtomicLong();
 
+    /** Extensions. */
+    private final PlatformCacheExtension[] extensions;
+
     /**
      * Constructor.
      *
@@ -229,13 +232,15 @@ public class PlatformCache extends PlatformAbstractTarget {
      * @param cache Underlying cache.
      * @param keepBinary Keep binary flag.
      */
-    public PlatformCache(PlatformContext platformCtx, IgniteCache cache, boolean keepBinary) {
+    public PlatformCache(PlatformContext platformCtx, IgniteCache cache, boolean keepBinary,
+        PlatformCacheExtension... extensions) {
         super(platformCtx);
 
         cacheRaw = cache;
 
         this.cache = (IgniteCacheProxy)cache.withKeepBinary();
         this.keepBinary = keepBinary;
+        this.extensions = extensions;
     }
 
     /**
@@ -247,7 +252,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (cache.delegate().skipStore())
             return this;
 
-        return new PlatformCache(platformCtx, cacheRaw.withSkipStore(), keepBinary);
+        return clone(cacheRaw.withSkipStore(), keepBinary);
     }
 
     /**
@@ -259,7 +264,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (keepBinary)
             return this;
 
-        return new PlatformCache(platformCtx, cacheRaw.withKeepBinary(), true);
+        return clone(cacheRaw.withKeepBinary(), true);
     }
 
     /**
@@ -273,7 +278,7 @@ public class PlatformCache extends PlatformAbstractTarget {
     public PlatformCache withExpiryPolicy(final long create, final long update, final long access) {
         IgniteCache cache0 = cacheRaw.withExpiryPolicy(new InteropExpiryPolicy(create, update, access));
 
-        return new PlatformCache(platformCtx, cache0, keepBinary);
+        return clone(cache0, keepBinary);
     }
 
     /**
@@ -285,7 +290,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (cache.isAsync())
             return this;
 
-        return new PlatformCache(platformCtx, cacheRaw.withAsync(), keepBinary);
+        return clone(cacheRaw.withAsync(), keepBinary);
     }
 
     /**
@@ -299,7 +304,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (opCtx != null && opCtx.noRetries())
             return this;
 
-        return new PlatformCache(platformCtx, cacheRaw.withNoRetries(), keepBinary);
+        return clone(cacheRaw.withNoRetries(), keepBinary);
     }
 
     /** {@inheritDoc} */
@@ -464,10 +469,16 @@ public class PlatformCache extends PlatformAbstractTarget {
                     return registerLock(cache.lockAll(PlatformUtils.readCollection(reader)));
 
                 case OP_EXTENSION:
-                    // TODO: Refactor this
-                    // Either inject this logic somehow (use negative op ids or something)
-                    // Or inherit the class (needs a new JNI call)
-                    return writeResult(mem, PlatformCacheInvoker.invoke(reader, cacheRaw));
+                    int opCode = reader.readInt();
+
+                    for (PlatformCacheExtension extension : extensions) {
+                        PlatformCacheExtensionResult res = extension.invoke(opCode, reader, cacheRaw);
+
+                        if (res.isMatch())
+                            return writeResult(mem, res.result());
+                    }
+
+                    throw new IgniteCheckedException("Unsupported cache extension type: " + type);
             }
         }
         catch (Exception e) {
@@ -1017,6 +1028,13 @@ public class PlatformCache extends PlatformAbstractTarget {
         qry.setLocal(loc);
 
         return qry;
+    }
+
+    /**
+     * Clones this instance.
+     */
+    private PlatformCache clone(IgniteCache cache, boolean keepBinary) {
+        return new PlatformCache(platformCtx, cache, keepBinary, extensions);
     }
 
     /**

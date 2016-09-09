@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.internal.processors.platform.cache;
+package org.apache.ignite.internal.processors.platform.websession;
 
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryRawReader;
-import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionData;
-import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionLockProcessor;
-import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionSetAndUnlockProcessor;
+import org.apache.ignite.internal.processors.platform.cache.PlatformCacheExtension;
+import org.apache.ignite.internal.processors.platform.cache.PlatformCacheExtensionResult;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -29,41 +28,31 @@ import java.util.UUID;
 /**
  * Custom entry processor invoker.
  */
-public class PlatformCacheInvoker {
+public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtension {
     /** */
     public static final int OP_SESSION_LOCK = 1;
 
     /** */
     public static final int OP_SESSION_SET_AND_UNLOCK = 2;
 
-    /**
-     * Invokes the custom processor.
-     *
-     * @param reader Reader.
-     * @param cache Cache.
-     *
-     * @return Result.
-     */
+    /** {@inheritDoc} */
     @SuppressWarnings("unchecked")
-    public static Object invoke(BinaryRawReader reader, IgniteCache cache) {
-        int opCode = reader.readInt();
-
-        String key = reader.readString();
-
-        Object res = null;
-
+    @Override public PlatformCacheExtensionResult invoke(int opCode, BinaryRawReader reader, IgniteCache cache) {
         switch (opCode) {
             case OP_SESSION_LOCK: {
+                String key = reader.readString();
                 UUID lockNodeId = reader.readUuid();
                 long lockId = reader.readLong();
                 Timestamp lockTime = reader.readTimestamp();
 
-                res = cache.invoke(key, new PlatformDotnetSessionLockProcessor(lockNodeId, lockId, lockTime));
+                Object res = cache.invoke(key, new PlatformDotnetSessionLockProcessor(lockNodeId, lockId, lockTime));
 
-                break;
+                return new PlatformCacheExtensionResult(true, res);
             }
 
             case OP_SESSION_SET_AND_UNLOCK:
+                String key = reader.readString();
+
                 PlatformDotnetSessionSetAndUnlockProcessor proc;
 
                 if (reader.readBoolean()) {
@@ -80,9 +69,9 @@ public class PlatformCacheInvoker {
 
                 cache.invoke(key, proc);
 
-                break;
+                return new PlatformCacheExtensionResult(true, null);
         }
 
-        return res;
+        return new PlatformCacheExtensionResult(false, null);
     }
 }
