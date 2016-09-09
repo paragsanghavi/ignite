@@ -521,7 +521,7 @@ public class GridNioServer<T> {
     public void resend(GridNioSession ses) {
         assert ses instanceof GridSelectorNioSessionImpl;
 
-        GridNioRecoveryDescriptor recoveryDesc = ses.recoveryDescriptor();
+        GridNioRecoveryDescriptor recoveryDesc = ses.outRecoveryDescriptor();
 
         if (recoveryDesc != null && !recoveryDesc.messagesFutures().isEmpty()) {
             Deque<GridNioFuture<?>> futs = recoveryDesc.messagesFutures();
@@ -695,7 +695,7 @@ public class GridNioServer<T> {
         assert req.operation() == NioOperation.REGISTER;
         assert req.socketChannel() != null;
 
-        U.debug("Req registration: " + req);
+        //U.debug("Req registration: " + req);
 
         int balanceIdx = req.accepted() ? readBalanceIdx.getAndAdd(2) : writeBalanceIdx.getAndAdd(2);
 
@@ -1531,7 +1531,8 @@ public class GridNioServer<T> {
                                         .append("rmtAddr=").append(ses.remoteAddress())
                                         .append(", locAddr=").append(ses.localAddress());
 
-                                    GridNioRecoveryDescriptor desc = ses.recoveryDescriptor();
+                                    // TODO
+                                    GridNioRecoveryDescriptor desc = ses.outRecoveryDescriptor();
 
                                     if (desc != null) {
                                         sb.append(", msgsSent=").append(desc.sent())
@@ -1900,7 +1901,7 @@ public class GridNioServer<T> {
                 // Since ses is in closed state, no write requests will be added.
                 NioOperationFuture<?> fut = ses.removeMeta(NIO_OPERATION.ordinal());
 
-                GridNioRecoveryDescriptor recovery = ses.recoveryDescriptor();
+                GridNioRecoveryDescriptor recovery = ses.outRecoveryDescriptor();
 
                 if (recovery != null) {
                     try {
@@ -1921,6 +1922,11 @@ public class GridNioServer<T> {
                     while ((fut = (NioOperationFuture<?>)ses.pollFuture()) != null)
                         fut.connectionClosed();
                 }
+
+                GridNioRecoveryDescriptor inRecovery = ses.inRecoveryDescriptor();
+
+                if (inRecovery != null && inRecovery != recovery)
+                    inRecovery.release();
 
                 try {
                     filterChain.onSessionClosed(ses);
