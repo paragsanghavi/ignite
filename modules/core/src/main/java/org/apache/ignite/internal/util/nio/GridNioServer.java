@@ -108,7 +108,7 @@ public class GridNioServer<T> {
     // TODO
     private static final int WRITE_BUF_SIZE = IgniteSystemProperties.getInteger("IGNITE_WRITE_BUF_SIZE", 65536);
     private static final int READ_BUF_SIZE = IgniteSystemProperties.getInteger("IGNITE_READ_BUF_SIZE", 65536);
-    private static final boolean NIO_SES_BALANCE_ENABLED = IgniteSystemProperties.getBoolean("IGNITE_NIO_SES_BALANCE_ENABLED", true);
+    private static final boolean NIO_SES_BALANCE_ENABLED = IgniteSystemProperties.getBoolean("IGNITE_NIO_SES_BALANCE_ENABLED", false);
 
     /** */
     private static final boolean DISABLE_KEYSET_OPTIMIZATION =
