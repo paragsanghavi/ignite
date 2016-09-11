@@ -1909,9 +1909,10 @@ public class GridNioServer<T> {
                 // Since ses is in closed state, no write requests will be added.
                 NioOperationFuture<?> fut = ses.removeMeta(NIO_OPERATION.ordinal());
 
-                GridNioRecoveryDescriptor recovery = ses.outRecoveryDescriptor();
+                GridNioRecoveryDescriptor outRecovery = ses.outRecoveryDescriptor();
+                GridNioRecoveryDescriptor inRecovery = ses.inRecoveryDescriptor();
 
-                if (recovery != null) {
+                if (outRecovery != null || inRecovery != null) {
                     try {
                         // Poll will update recovery data.
                         while ((fut = (NioOperationFuture<?>)ses.pollFuture()) != null) {
@@ -1920,7 +1921,11 @@ public class GridNioServer<T> {
                         }
                     }
                     finally {
-                        recovery.release();
+                        if (outRecovery != null)
+                            outRecovery.release();
+
+                        if (inRecovery != null && inRecovery != outRecovery)
+                            inRecovery.release();
                     }
                 }
                 else {
@@ -1930,11 +1935,6 @@ public class GridNioServer<T> {
                     while ((fut = (NioOperationFuture<?>)ses.pollFuture()) != null)
                         fut.connectionClosed();
                 }
-
-                GridNioRecoveryDescriptor inRecovery = ses.inRecoveryDescriptor();
-
-                if (inRecovery != null && inRecovery != recovery)
-                    inRecovery.release();
 
                 try {
                     filterChain.onSessionClosed(ses);

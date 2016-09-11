@@ -307,7 +307,7 @@ public class GridTcpCommunicationSpiRecoverySelfTest<T extends CommunicationSpi>
 
                     IgniteInternalFuture<?> sndFut = GridTestUtils.runAsync(new Callable<Void>() {
                         @Override public Void call() throws Exception {
-                            for (int i = 0; i < 5000; i++) {
+                            for (int i = 0; i < 6000; i++) {
                                 spi0.sendMessage(node1, new GridTestMessage(node0.id(), msgId.incrementAndGet(), 0));
 
                                 sentCnt.incrementAndGet();
@@ -417,7 +417,7 @@ public class GridTcpCommunicationSpiRecoverySelfTest<T extends CommunicationSpi>
 
                     IgniteInternalFuture<?> sndFut = GridTestUtils.runAsync(new Callable<Void>() {
                         @Override public Void call() throws Exception {
-                            for (int i = 0; i < 5000; i++) {
+                            for (int i = 0; i < 6000; i++) {
                                 spi0.sendMessage(node1, new GridTestMessage(node0.id(), msgId.incrementAndGet(), 0));
 
                                 expCnt1.incrementAndGet();
@@ -534,7 +534,7 @@ public class GridTcpCommunicationSpiRecoverySelfTest<T extends CommunicationSpi>
 
                     IgniteInternalFuture<?> sndFut = GridTestUtils.runAsync(new Callable<Void>() {
                         @Override public Void call() throws Exception {
-                            for (int i = 0; i < 5000; i++) {
+                            for (int i = 0; i < 6000; i++) {
                                 spi0.sendMessage(node1, new GridTestMessage(node0.id(), msgId.incrementAndGet(), 0));
 
                                 sentCnt.incrementAndGet();

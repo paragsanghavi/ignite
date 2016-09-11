@@ -732,6 +732,8 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
 
                         nioSrvr.sendSystem(ses, new RecoveryLastReceivedMessage(recoveryDesc.received()), lsnr);
                     }
+                    else
+                        nioSrvr.sendSystem(ses, new RecoveryLastReceivedMessage(-1));
                 }
             }
 
@@ -3271,6 +3273,9 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
                 long idleTime = client.getIdleTime();
 
                 if (idleTime >= idleConnTimeout) {
+                    if (recovery == null && useTwoConnections(node))
+                        recovery = outRecDescs.get(new ClientKey(node.id(), node.order()));
+
                     if (recovery != null &&
                         recovery.nodeAlive(getSpiContext().node(nodeId)) &&
                         !recovery.messagesFutures().isEmpty()) {
