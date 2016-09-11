@@ -77,7 +77,6 @@ import org.apache.ignite.internal.util.nio.GridDirectParser;
 import org.apache.ignite.internal.util.nio.GridNioCodecFilter;
 import org.apache.ignite.internal.util.nio.GridNioFilter;
 import org.apache.ignite.internal.util.nio.GridNioMessageReaderFactory;
-import org.apache.ignite.internal.util.nio.GridNioMessageTracker;
 import org.apache.ignite.internal.util.nio.GridNioMessageWriterFactory;
 import org.apache.ignite.internal.util.nio.GridNioMetricsListener;
 import org.apache.ignite.internal.util.nio.GridNioRecoveryDescriptor;
@@ -440,14 +439,14 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
 
                 HandshakeMessage msg0 = (HandshakeMessage)msg;
 
-                if (twoConnections(rmtNode)) {
+                if (useTwoConnections(rmtNode)) {
                     final GridNioRecoveryDescriptor recoveryDesc = inRecoveryDescriptor(rmtNode);
 
                     boolean reserve = recoveryDesc.tryReserve(msg0.connectCount(),
-                        new ConnectClosureNew(ses, recoveryDesc, rmtNode, msg0));
+                        new ConnectClosureNew(ses, recoveryDesc, rmtNode));
 
                     if (reserve)
-                        connectedNew(recoveryDesc, ses, msg0.received(), true);
+                        connectedNew(recoveryDesc, ses, true);
                 }
                 else {
                     GridCommunicationClient oldClient = clients.get(sndId);
@@ -668,16 +667,12 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
             /**
              * @param recovery Recovery descriptor.
              * @param ses Session.
-             * @param rcvCnt Number of received messages..
              * @param sndRes If {@code true} sends response for recovery handshake.
              */
             private void connectedNew(
                 GridNioRecoveryDescriptor recovery,
                 GridNioSession ses,
-                long rcvCnt,
                 boolean sndRes) {
-                recovery.onHandshake(rcvCnt);
-
                 ses.inRecoveryDescriptor(recovery);
 
                 if (sndRes)
@@ -702,23 +697,17 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
                 /** */
                 private final ClusterNode rmtNode;
 
-                /** */
-                private final HandshakeMessage msg;
-
                 /**
                  * @param ses Incoming session.
                  * @param recoveryDesc Recovery descriptor.
                  * @param rmtNode Remote node.
-                 * @param msg Handshake message.
                  */
                 ConnectClosureNew(GridNioSession ses,
                     GridNioRecoveryDescriptor recoveryDesc,
-                    ClusterNode rmtNode,
-                    HandshakeMessage msg) {
+                    ClusterNode rmtNode) {
                     this.ses = ses;
                     this.recoveryDesc = recoveryDesc;
                     this.rmtNode = rmtNode;
-                    this.msg = msg;
                 }
 
                 /** {@inheritDoc} */
@@ -729,7 +718,7 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
                                 try {
                                     msgFut.get();
 
-                                    connectedNew(recoveryDesc, ses, msg.received(), false);
+                                    connectedNew(recoveryDesc, ses, false);
                                 }
                                 catch (IgniteCheckedException e) {
                                     if (log.isDebugEnabled())
@@ -1987,6 +1976,8 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
             clientFut.onDone(err);
 
         recoveryDescs.clear();
+        inRecDescs.clear();
+        outRecDescs.clear();
     }
 
     /** {@inheritDoc} */
@@ -2913,14 +2904,14 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
     }
 
     private GridNioRecoveryDescriptor outRecoveryDescriptor(ClusterNode node) {
-        if (twoConnections(node))
+        if (useTwoConnections(node))
             return recoveryDescriptor(outRecDescs, node);
         else
             return recoveryDescriptor(recoveryDescs, node);
     }
 
     private GridNioRecoveryDescriptor inRecoveryDescriptor(ClusterNode node) {
-        if (twoConnections(node))
+        if (useTwoConnections(node))
             return recoveryDescriptor(inRecDescs, node);
         else
             return recoveryDescriptor(recoveryDescs, node);
@@ -2928,9 +2919,9 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
 
     /**
      * @param node Node.
-     * @return {@code True} if given node supports two connectios.
+     * @return {@code True} if given node supports two connections per-node for communication.
      */
-    private boolean twoConnections(ClusterNode node) {
+    private boolean useTwoConnections(ClusterNode node) {
         return TWO_CONN_SINCE_VER.compareToIgnoreTimestamp(node.version()) <= 0;
     }
 
@@ -3259,7 +3250,7 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
 
                 GridNioRecoveryDescriptor recovery = null;
 
-                if (client instanceof GridTcpNioCommunicationClient) {
+                if (!useTwoConnections(node) && client instanceof GridTcpNioCommunicationClient) {
                     recovery = recoveryDescs.get(new ClientKey(node.id(), node.order()));
 
                     if (recovery != null && recovery.lastAcknowledged() != recovery.received()) {
@@ -3297,12 +3288,51 @@ public class TcpCommunicationSpi extends IgniteSpiAdapter
                         clients.remove(nodeId, client);
                 }
             }
+
+            for (GridNioSession ses : nioSrvr.sessions()) {
+                GridNioRecoveryDescriptor recovery = ses.inRecoveryDescriptor();
+
+                if (recovery != null && useTwoConnections(recovery.node())) {
+                    assert ses.accepted() : ses;
+
+                    sendAckOnTimeout(recovery, ses);
+                }
+            }
+        }
+
+        /**
+         * @param recovery Recovery descriptor.
+         * @param ses Session.
+         */
+        private void sendAckOnTimeout(GridNioRecoveryDescriptor recovery, GridNioSession ses) {
+            if (recovery != null && recovery.lastAcknowledged() != recovery.received()) {
+                RecoveryLastReceivedMessage msg = new RecoveryLastReceivedMessage(recovery.received());
+
+                if (log.isDebugEnabled()) {
+                    log.debug("Send recovery acknowledgement on timeout [rmtNode=" + recovery.node().id() +
+                        ", rcvCnt=" + msg.received() +
+                        ", lastAcked=" + recovery.lastAcknowledged() + ']');
+                }
+
+                nioSrvr.sendSystem(ses, msg);
+
+                recovery.lastAcknowledged(msg.received());
+            }
         }
 
         /**
          *
          */
         private void cleanupRecovery() {
+            cleanupRecovery(recoveryDescs);
+            cleanupRecovery(inRecDescs);
+            cleanupRecovery(outRecDescs);
+        }
+
+        /**
+         *
+         */
+        private void cleanupRecovery(ConcurrentMap<ClientKey, GridNioRecoveryDescriptor> recoveryDescs) {
             Set<ClientKey> left = null;
 
             for (Map.Entry<ClientKey, GridNioRecoveryDescriptor> e : recoveryDescs.entrySet()) {

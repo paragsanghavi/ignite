@@ -37,6 +37,7 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -544,6 +545,13 @@ public class GridNioServer<T> {
             // Wake up worker.
             clientWorkers.get(ses0.selectorIndex()).offer(((NioOperationFuture)fut0));
         }
+    }
+
+    /**
+     * @return Sessions.
+     */
+    public Collection<? extends GridNioSession> sessions() {
+        return sessions;
     }
 
     /**
