@@ -152,11 +152,11 @@ public class GridNioServer<T> {
     /** Flag indicating if this server should use direct buffers. */
     private final boolean directBuf;
 
-    /** Index to select which thread will serve next socket channel. Using round-robin balancing. */
+    /** Index to select which thread will serve next in socket channel. Using round-robin balancing. */
     @GridToStringExclude
     private final AtomicInteger readBalanceIdx = new AtomicInteger();
 
-    // TODO
+    /** Index to select which thread will serve next out socket channel. Using round-robin balancing. */
     @GridToStringExclude
     private final AtomicInteger writeBalanceIdx = new AtomicInteger(1);
 
@@ -700,10 +700,8 @@ public class GridNioServer<T> {
      * @param req Request to balance.
      */
     private synchronized void offerBalanced(NioOperationFuture req) {
-        assert req.operation() == NioOperation.REGISTER;
-        assert req.socketChannel() != null;
-
-        //U.debug("Req registration: " + req);
+        assert req.operation() == NioOperation.REGISTER : req;
+        assert req.socketChannel() != null : req;
 
         int balanceIdx = req.accepted() ? readBalanceIdx.getAndAdd(2) : writeBalanceIdx.getAndAdd(2);
 
