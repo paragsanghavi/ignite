@@ -548,7 +548,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
                     maxExtId = cacheExt.id();
             }
 
-            PlatformCacheExtension[] res = new PlatformCacheExtension[maxExtId];
+            PlatformCacheExtension[] res = new PlatformCacheExtension[maxExtId + 1];
 
             for (PlatformCacheExtension cacheExt : cacheExts)
                 res[cacheExt.id()]= cacheExt;
@@ -556,6 +556,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
             return res;
         }
         else
+            //noinspection ZeroLengthArrayAllocation
             return new PlatformCacheExtension[0];
     }
 
