@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-namespace Apache.Ignite.Core.Impl.AspNet
+namespace Apache.Ignite.AspNet.Impl
 {
     using System;
     using System.Diagnostics;
+    using System.Globalization;
     using Apache.Ignite.Core.Binary;
-    using Apache.Ignite.Core.Impl.Binary;
 
     /// <summary>
     /// Result of the session state lock processor.
     /// </summary>
-    public class SessionStateLockResult : IBinaryWriteAware
+    internal class SessionStateLockResult
     {
         /** Success flag. */
         private readonly bool _success;
@@ -79,15 +79,7 @@ namespace Apache.Ignite.Core.Impl.AspNet
         /// </summary>
         public override string ToString()
         {
-            return string.Format("{0} [Success={1}]", GetType().Name, _success);
-        }
-
-        /// <summary>
-        /// Writes this object to the given writer.
-        /// </summary>
-        public void WriteBinary(IBinaryWriter writer)
-        {
-            throw new NotSupportedException(GetType() + " is only written from native code.");
+            return string.Format(CultureInfo.InvariantCulture, "{0} [Success={1}]", GetType().Name, _success);
         }
     }
 }

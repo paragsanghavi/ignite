@@ -18,6 +18,7 @@
 package org.apache.ignite.internal.processors.platform.websession;
 
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.binary.BinaryReader;
 import org.apache.ignite.internal.binary.BinaryRawReaderEx;
 import org.apache.ignite.internal.processors.platform.cache.PlatformCache;
 import org.apache.ignite.internal.processors.platform.cache.PlatformCacheExtension;
@@ -35,10 +36,19 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
     private static final int EXT_ID = 0;
 
     /** Operation: session lock. */
-    private static final int OP_SESSION_LOCK = 1;
+    private static final int OP_LOCK = 1;
 
     /** Operation: session set/unlock. */
-    private static final int OP_SESSION_SET_AND_UNLOCK = 2;
+    private static final int OP_SET_AND_UNLOCK = 2;
+
+    /** Operation: session get without lock. */
+    private static final int OP_GET = 3;
+
+    /** Operation: session put without lock. */
+    private static final int OP_PUT = 4;
+
+    /** Operation: session remove without lock. */
+    private static final int OP_REMOVE = 5;
 
     /** {@inheritDoc} */
     @Override public int id() {
@@ -50,7 +60,7 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
     @Override public long processInOutStreamLong(PlatformCache target, int type, BinaryRawReaderEx reader,
         PlatformMemory mem) throws IgniteCheckedException {
         switch (type) {
-            case OP_SESSION_LOCK: {
+            case OP_LOCK: {
                 String key = reader.readString();
                 UUID lockNodeId = reader.readUuid();
                 long lockId = reader.readLong();
@@ -62,7 +72,7 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
                 return target.writeResult(mem, res);
             }
 
-            case OP_SESSION_SET_AND_UNLOCK:
+            case OP_SET_AND_UNLOCK: {
                 String key = reader.readString();
 
                 PlatformDotnetSessionSetAndUnlockProcessor proc;
@@ -82,6 +92,35 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
                 target.rawCache().invoke(key, proc);
 
                 return target.writeResult(mem, null);
+            }
+
+            case OP_GET: {
+                String key = reader.readString();
+
+                PlatformDotnetSessionData data = (PlatformDotnetSessionData)target.rawCache().get(key);
+
+                return target.writeResult(mem, data);
+            }
+
+            case OP_PUT: {
+                String key = reader.readString();
+
+                PlatformDotnetSessionData data = new PlatformDotnetSessionData();
+
+                data.readBinary((BinaryReader)reader);
+
+                target.rawCache().put(key, data);
+
+                return target.writeResult(mem, null);
+            }
+
+            case OP_REMOVE: {
+                String key = reader.readString();
+
+                target.rawCache().remove(key);
+
+                return target.writeResult(mem, null);
+            }
         }
 
         throw new IgniteCheckedException("Unsupported operation type: " + type);

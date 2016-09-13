@@ -22,7 +22,6 @@ namespace Apache.Ignite.AspNet.Impl
     using System.Collections.Specialized;
     using System.Diagnostics;
     using System.Web.SessionState;
-    using Apache.Ignite.Core.Impl.Collections;
     using Apache.Ignite.Core.Impl.Common;
 
     /// <summary>

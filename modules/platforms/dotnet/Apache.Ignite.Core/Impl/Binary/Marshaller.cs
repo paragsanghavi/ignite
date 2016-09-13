@@ -23,12 +23,10 @@ namespace Apache.Ignite.Core.Impl.Binary
     using System.Linq;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache.Affinity;
-    using Apache.Ignite.Core.Impl.AspNet;
     using Apache.Ignite.Core.Impl.Binary.IO;
     using Apache.Ignite.Core.Impl.Binary.Metadata;
     using Apache.Ignite.Core.Impl.Cache;
     using Apache.Ignite.Core.Impl.Cache.Query.Continuous;
-    using Apache.Ignite.Core.Impl.Collections;
     using Apache.Ignite.Core.Impl.Common;
     using Apache.Ignite.Core.Impl.Compute;
     using Apache.Ignite.Core.Impl.Compute.Closure;
@@ -557,7 +555,7 @@ namespace Apache.Ignite.Core.Impl.Binary
         /// Adds a predefined system type.
         /// </summary>
         private void AddSystemType<T>(int typeId, Func<BinaryReader, T> ctor, string affKeyFldName = null, 
-            IBinarySerializerInternal serializer = null, string typeNameOverride = null)
+            IBinarySerializerInternal serializer = null)
             where T : IBinaryWriteAware
         {
             var type = typeof(T);
@@ -565,7 +563,7 @@ namespace Apache.Ignite.Core.Impl.Binary
             serializer = serializer ?? new BinarySystemTypeSerializer<T>(ctor);
 
             if (typeId == 0)
-                typeId = BinaryUtils.TypeId(typeNameOverride ?? type.Name, null, null);
+                typeId = BinaryUtils.TypeId(type.Name, null, null);
 
             AddType(type, typeId, BinaryUtils.GetTypeName(type), false, false, null, null, serializer, affKeyFldName,
                 false);
@@ -596,8 +594,6 @@ namespace Apache.Ignite.Core.Impl.Binary
             AddSystemType(0, r => new AffinityKey(r), "affKey");
             AddSystemType(BinaryUtils.TypePlatformJavaObjectFactoryProxy, r => new PlatformJavaObjectFactoryProxy());
             AddSystemType(0, r => new ObjectInfoHolder(r));
-            AddSystemType(0, r => new SessionStateData(r), typeNameOverride: "PlatformDotnetSessionData");
-            AddSystemType(0, r => new SessionStateLockResult(r), typeNameOverride: "PlatformDotnetSessionLockResult");
         }
     }
 }

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-namespace Apache.Ignite.Core.Tests.Collections
+namespace Apache.Ignite.Core.Tests.AspNet
 {
     using System;
     using System.Linq;
-    using Apache.Ignite.Core.Impl.Collections;
+    using Apache.Ignite.AspNet.Impl;
     using NUnit.Framework;
 
     /// <summary>

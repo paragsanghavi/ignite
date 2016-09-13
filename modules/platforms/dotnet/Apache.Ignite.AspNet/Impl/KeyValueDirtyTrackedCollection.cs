@@ -15,23 +15,20 @@
  * limitations under the License.
  */
 
-namespace Apache.Ignite.Core.Impl.Collections
+namespace Apache.Ignite.AspNet.Impl
 {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.IO;
+    using System.Globalization;
     using System.Linq;
     using Apache.Ignite.Core.Binary;
-    using Apache.Ignite.Core.Impl.Binary;
     using Apache.Ignite.Core.Impl.Common;
-    using BinaryReader = Apache.Ignite.Core.Impl.Binary.BinaryReader;
-    using BinaryWriter = Apache.Ignite.Core.Impl.Binary.BinaryWriter;
 
     /// <summary>
     /// Binarizable key-value collection with dirty item tracking.
     /// </summary>
-    public class KeyValueDirtyTrackedCollection : IBinaryWriteAware
+    internal class KeyValueDirtyTrackedCollection
     {
         /** */
         private readonly Dictionary<string, int> _dict;
@@ -55,7 +52,7 @@ namespace Apache.Ignite.Core.Impl.Collections
         /// Initializes a new instance of the <see cref="KeyValueDirtyTrackedCollection"/> class.
         /// </summary>
         /// <param name="reader">The binary reader.</param>
-        internal KeyValueDirtyTrackedCollection(BinaryReader reader)
+        internal KeyValueDirtyTrackedCollection(IBinaryRawReader reader)
         {
             Debug.Assert(reader != null);
 
@@ -74,7 +71,7 @@ namespace Apache.Ignite.Core.Impl.Collections
 
                 if (valBytes != null)
                 {
-                    var entry = new Entry(key, true, reader.Marshaller, valBytes);
+                    var entry = new Entry(key, true, valBytes);
 
                     _dict[key] = _list.Count;
 
@@ -178,55 +175,46 @@ namespace Apache.Ignite.Core.Impl.Collections
         /// Writes this object to the given writer.
         /// </summary>
         /// <param name="writer">Writer.</param>
-        public void WriteBinary(IBinaryWriter writer)
+        public void WriteBinary(IBinaryRawWriter writer)
         {
             IgniteArgumentCheck.NotNull(writer, "writer");
 
             if (_isDiff)
-                throw new InvalidOperationException(string.Format("Cannot serialize incomplete {0}.", GetType()));
-
-            var raw = writer.GetRawWriter();
-            var wr = (BinaryWriter) raw;
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
+                    "Cannot serialize incomplete {0}.", GetType()));
 
             if (_isNew || _dirtyAll || !WriteChangesOnly || (_removedKeys == null && _list.All(x => x.IsDirty)))
             {
                 // Write in full mode.
-                raw.WriteBoolean(false);
-                raw.WriteInt(_list.Count);
+                writer.WriteBoolean(false);
+                writer.WriteInt(_list.Count);
 
                 foreach (var entry in _list)
                 {
-                    raw.WriteString(entry.Key);
+                    writer.WriteString(entry.Key);
 
                     // Write as byte array to enable partial deserialization.
-                    raw.WriteByteArray(entry.GetBytes(wr.Marshaller));
+                    writer.WriteByteArray(entry.GetBytes());
                 }
             }
             else
             {
                 // Write in diff mode.
-                raw.WriteBoolean(true);
+                writer.WriteBoolean(true);
 
-                var stream = wr.Stream;
+                var removed = GetRemovedKeys();
 
-                var countPos = stream.Position;
-                var count = 0;
+                var count = _list.Count + (removed == null ? 0 : removed.Count);
 
-                raw.WriteInt(count);  // reserve count
+                writer.WriteInt(count);  // reserve count
 
                 // Write removed keys as [key + null].
-                if (_removedKeys != null)
+                if (removed != null)
                 {
-                    // Filter out existing keys.
-                    var removed = new HashSet<string>(_removedKeys);
-
-                    foreach (var entry in _list)
-                        removed.Remove(entry.Key);
-
                     foreach (var removedKey in removed)
                     {
-                        raw.WriteString(removedKey);
-                        raw.WriteByteArray(null);
+                        writer.WriteString(removedKey);
+                        writer.WriteByteArray(null);
 
                         count++;
                     }
@@ -238,22 +226,28 @@ namespace Apache.Ignite.Core.Impl.Collections
                     if (!entry.IsDirty)
                         continue;
 
-                    raw.WriteString(entry.Key);
+                    writer.WriteString(entry.Key);
 
                     // Write as byte array to enable partial deserialization.
-                    raw.WriteByteArray(entry.GetBytes(wr.Marshaller));
+                    writer.WriteByteArray(entry.GetBytes());
 
                     count++;
                 }
-
-                // Write item count.
-                var pos = stream.Position;
-
-                stream.Seek(countPos, SeekOrigin.Begin);
-                stream.WriteInt(count);
-                stream.Seek(pos, SeekOrigin.Begin);
-
             }
+        }
+
+        private ICollection<string> GetRemovedKeys()
+        {
+            if (_removedKeys == null)
+                return null;
+
+            // Filter out existing keys.
+            var removed = new HashSet<string>(_removedKeys);
+
+            foreach (var entry in _list)
+                removed.Remove(entry.Key);
+
+            return removed;
         }
 
         /// <summary>
@@ -360,7 +354,7 @@ namespace Apache.Ignite.Core.Impl.Collections
 
             if (entry == null)
             {
-                entry = new Entry(key, false, null, null);
+                entry = new Entry(key, false, null);
 
                 _dict[key] = _list.Count;
                 _list.Add(entry);
@@ -437,9 +431,6 @@ namespace Apache.Ignite.Core.Impl.Collections
             public bool IsDirty;
 
             /** */
-            private Marshaller _marsh;
-
-            /** */
             private object _value;
 
             /** */
@@ -448,15 +439,13 @@ namespace Apache.Ignite.Core.Impl.Collections
             /// <summary>
             /// Initializes a new instance of the <see cref="Entry"/> class.
             /// </summary>
-            public Entry(string key, bool isInitial, Marshaller marsh, object value)
+            public Entry(string key, bool isInitial, object value)
             {
                 Debug.Assert(key != null);
-                Debug.Assert(!isInitial || marsh != null);
 
                 Key = key;
                 IsInitial = isInitial;
                 _isDeserialized = !isInitial;
-                _marsh = marsh;
                 _value = value;
             }
 
@@ -469,7 +458,8 @@ namespace Apache.Ignite.Core.Impl.Collections
                 {
                     if (!_isDeserialized)
                     {
-                        _value = _marsh.Unmarshal<object>((byte[]) _value);
+                        // TODO: BinaryFormatter
+                        //_value = _marsh.Unmarshal<object>((byte[]) _value);
                         _isDeserialized = true;
                     }
 
@@ -491,18 +481,19 @@ namespace Apache.Ignite.Core.Impl.Collections
 
                 entry._isDeserialized = _isDeserialized;
                 entry._value = _value;
-                entry._marsh = _marsh;
             }
 
             /// <summary>
             /// Gets the bytes.
             /// </summary>
-            public byte[] GetBytes(Marshaller marsh)
+            public byte[] GetBytes()
             {
                 if (!_isDeserialized)
                     return (byte[]) _value;
 
-                return marsh.Marshal(_value);
+                // TODO: BinaryFormatter
+                //return marsh.Marshal(_value);
+                return null;
             }
         }
     }

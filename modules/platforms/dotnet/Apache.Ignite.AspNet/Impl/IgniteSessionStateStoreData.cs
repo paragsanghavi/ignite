@@ -20,7 +20,6 @@ namespace Apache.Ignite.AspNet.Impl
     using System.IO;
     using System.Web;
     using System.Web.SessionState;
-    using Apache.Ignite.Core.Impl.AspNet;
 
     /// <summary>
     /// Wrapper for <see cref="SessionStateData"/>.

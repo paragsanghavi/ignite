@@ -18,7 +18,7 @@
 namespace Apache.Ignite.Core.Tests.AspNet
 {
     using System;
-    using Apache.Ignite.Core.Impl.AspNet;
+    using Apache.Ignite.AspNet.Impl;
     using NUnit.Framework;
 
     /// <summary>

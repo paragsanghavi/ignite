@@ -873,7 +873,8 @@ namespace Apache.Ignite.Core.Impl.Cache
         }
 
         /** <inheritDoc /> */
-        public T InvokeExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction)
+        public T InvokeExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction, 
+            Func<IBinaryRawReader, T> readFunc)
         {
             return DoOutInOpX((int) CacheOp.Extension, writer =>
                 {
@@ -881,7 +882,9 @@ namespace Apache.Ignite.Core.Impl.Cache
                     writer.WriteInt(opCode);
                     writeAction(writer);
                 },
-                (input, res) => res == True ? Marshaller.Unmarshal<T>(input) : default(T), ReadException);
+                (input, res) => res == True
+                    ? readFunc(Marshaller.StartUnmarshal(input))
+                    : default(T), ReadException);
         }
 
         /** <inheritdoc /> */

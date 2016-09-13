@@ -28,7 +28,6 @@ namespace Apache.Ignite.AspNet
     using Apache.Ignite.Core;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache;
-    using Apache.Ignite.Core.Impl.AspNet;
     using Apache.Ignite.Core.Impl.Cache;
     using Apache.Ignite.Core.Log;
 
@@ -56,10 +55,19 @@ namespace Apache.Ignite.AspNet
         private enum Op
         {
             /** Lock the session data. */
-            SessionLock = 1,
+            Lock = 1,
 
             /** Update and unlock the session data. */
-            SessionSetAndUnlock = 2
+            SetAndUnlock = 2,
+
+            /** Get the data without lock. */
+            Get = 3,
+
+            /** Put the data without lock. */
+            Put = 4,
+
+            /** Remove the data without lock. */
+            Remove = 5
         }
 
         /** Application id config parameter. */
@@ -170,9 +178,9 @@ namespace Apache.Ignite.AspNet
             locked = false;
 
             var key = GetKey(id);
-            SessionStateData data;
+            var data = GetItem(key);
 
-            if (Cache.TryGet(key, out data))
+            if (data != null)
             {
                 locked = data.LockNodeId != null;
 
@@ -316,7 +324,7 @@ namespace Apache.Ignite.AspNet
         {
             Log("RemoveItem", id, context);
 
-            Cache.Remove(GetKey(id));
+            RemoveItem(GetKey(id));
         }
 
         /// <summary>
@@ -367,7 +375,7 @@ namespace Apache.Ignite.AspNet
 
             var data = new SessionStateData { Timeout = timeout };
 
-            cache[key] = data;
+            PutItem(key, data, cache);
         }
 
         /// <summary>
@@ -446,12 +454,13 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private SessionStateLockResult LockItem(string key, long lockId)
         {
-            return ((ICacheInternal) Cache).InvokeExtension<SessionStateLockResult>(ExtensionId, (int) Op.SessionLock,
+            return OutInOp(Op.Lock,
                 w =>
                 {
                     w.WriteString(key);
                     WriteLockInfo(w, lockId, true);
-                });
+                }, 
+                r => new SessionStateLockResult(r));
         }
 
         /// <summary>
@@ -459,7 +468,7 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private void UnlockItem(string key, long lockId)
         {
-            ((ICacheInternal) Cache).InvokeExtension<object>(ExtensionId, (int) Op.SessionSetAndUnlock,
+            OutOp(Op.SetAndUnlock,
                 w =>
                 {
                     w.WriteString(key);
@@ -477,13 +486,60 @@ namespace Apache.Ignite.AspNet
 
             var cache = _expiryCacheHolder.GetCacheWithExpiry(data.Timeout * 60);
 
-            ((ICacheInternal) cache).InvokeExtension<object>(ExtensionId, (int) Op.SessionSetAndUnlock,
-                w =>
-                {
-                    w.WriteString(key);
-                    w.WriteBoolean(true); // Unlock and update.
-                    w.WriteObject(data);
-                });
+            OutOp(Op.SetAndUnlock, w =>
+            {
+                w.WriteString(key);
+                w.WriteBoolean(true); // Unlock and update.
+                data.WriteBinary(w);
+            }, cache);
+        }
+
+        /// <summary>
+        /// Puts the item.
+        /// </summary>
+        private void PutItem(string key, SessionStateData data, ICache<string, SessionStateData> cache)
+        {
+            OutOp(Op.Put, w =>
+            {
+                w.WriteString(key);
+                data.WriteBinary(w);
+            }, cache);
+        }
+
+        /// <summary>
+        /// Gets the item.
+        /// </summary>
+        private SessionStateData GetItem(string key)
+        {
+            return OutInOp(Op.Get, w => w.WriteString(key), r => new SessionStateData(r));
+        }
+
+        /// <summary>
+        /// Removes the item.
+        /// </summary>
+        private void RemoveItem(string key)
+        {
+            OutOp(Op.Remove, w => w.WriteString(key));
+        }
+
+        /// <summary>
+        /// Invokes the extension operation.
+        /// </summary>
+        private void OutOp(Op op, Action<IBinaryRawWriter> writeAction, 
+            ICache<string, SessionStateData> cache = null)
+        {
+            OutInOp<object>(op, writeAction, null, cache);
+        }
+
+        /// <summary>
+        /// Invokes the extension operation.
+        /// </summary>
+        private T OutInOp<T>(Op op, Action<IBinaryRawWriter> writeAction, Func<IBinaryRawReader, T> readFunc, 
+            ICache<string, SessionStateData> cache = null)
+        {
+            cache = cache ?? Cache;
+
+            return ((ICacheInternal) cache).InvokeExtension(ExtensionId, (int) op, writeAction, readFunc);
         }
     }
 }

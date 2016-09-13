@@ -15,18 +15,16 @@
  * limitations under the License.
  */
 
-namespace Apache.Ignite.Core.Impl.AspNet
+namespace Apache.Ignite.AspNet.Impl
 {
     using System;
     using Apache.Ignite.Core.Binary;
-    using Apache.Ignite.Core.Impl.Binary;
-    using Apache.Ignite.Core.Impl.Collections;
 
     /// <summary>
     /// Binarizable SessionStateStoreData. 
     /// Does not override System.Web.SessionState.SessionStateStoreData to avoid dependency on System.Web.
     /// </summary>
-    public class SessionStateData : IBinaryWriteAware
+    internal class SessionStateData
     {
         /** Items. */
         private readonly KeyValueDirtyTrackedCollection _items;
@@ -35,7 +33,7 @@ namespace Apache.Ignite.Core.Impl.AspNet
         /// Initializes a new instance of the <see cref="SessionStateData"/> class.
         /// </summary>
         /// <param name="reader">The reader.</param>
-        internal SessionStateData(BinaryReader reader)
+        public SessionStateData(IBinaryRawReader reader)
         {
             Timeout = reader.ReadInt();
             LockNodeId = reader.ReadGuid();
@@ -90,16 +88,14 @@ namespace Apache.Ignite.Core.Impl.AspNet
         /// Writes this object to the given writer.
         /// </summary>
         /// <param name="writer">Writer.</param>
-        public void WriteBinary(IBinaryWriter writer)
+        public void WriteBinary(IBinaryRawWriter writer)
         {
-            var raw = writer.GetRawWriter();
-
-            raw.WriteInt(Timeout);
-            raw.WriteGuid(LockNodeId);
-            raw.WriteLong(LockId);
-            raw.WriteTimestamp(LockTime);
+            writer.WriteInt(Timeout);
+            writer.WriteGuid(LockNodeId);
+            writer.WriteLong(LockId);
+            writer.WriteTimestamp(LockTime);
             Items.WriteBinary(writer);
-            raw.WriteByteArray(StaticObjects);
+            writer.WriteByteArray(StaticObjects);
         }
     }
 }
