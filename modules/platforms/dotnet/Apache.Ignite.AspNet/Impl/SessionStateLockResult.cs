@@ -31,7 +31,7 @@ namespace Apache.Ignite.AspNet.Impl
         private readonly bool _success;
 
         /** Session state data. */
-        private readonly SessionStateData _data;
+        private readonly IgniteSessionStateStoreData _data;
 
         /** Lock time. */
         private readonly DateTime? _lockTime;
@@ -45,7 +45,7 @@ namespace Apache.Ignite.AspNet.Impl
             _success = reader.ReadBoolean();
 
             if (_success)
-                _data = new SessionStateData(reader);
+                _data = new IgniteSessionStateStoreData(reader);
 
             _lockTime = reader.ReadTimestamp();
 
@@ -64,7 +64,7 @@ namespace Apache.Ignite.AspNet.Impl
         /// <summary>
         /// Gets the data. Null when <see cref="Success"/> is <c>false</c>.
         /// </summary>
-        public SessionStateData Data
+        public IgniteSessionStateStoreData Data
         {
             get { return _data; }
         }

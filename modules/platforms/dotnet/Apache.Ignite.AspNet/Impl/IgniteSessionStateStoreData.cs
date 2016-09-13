@@ -17,30 +17,67 @@
 
 namespace Apache.Ignite.AspNet.Impl
 {
+    using System;
     using System.IO;
     using System.Web;
     using System.Web.SessionState;
+    using Apache.Ignite.Core.Binary;
 
     /// <summary>
-    /// Wrapper for <see cref="SessionStateData"/>.
+    /// Ignite <see cref="SessionStateStoreData"/> implementation.
     /// </summary>
     internal class IgniteSessionStateStoreData : SessionStateStoreData
     {
-        /** */
-        private readonly SessionStateData _data;
-
-        /** */
-        private readonly IgniteSessionStateItemCollection _items;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="IgniteSessionStateStoreData"/> class.
         /// </summary>
-        /// <param name="data">The data.</param>
-        public IgniteSessionStateStoreData(SessionStateData data) 
-            : base(null, DeserializeStaticObjects(data.StaticObjects), 0)
+        /// <param name="reader">The reader.</param>
+        public IgniteSessionStateStoreData(IBinaryRawReader reader) : base(
+            new IgniteSessionStateItemCollection(new KeyValueDirtyTrackedCollection(reader)),
+            DeserializeStaticObjects(reader.ReadByteArray()), reader.ReadInt())
         {
-            _data = data;
-            _items = new IgniteSessionStateItemCollection(_data.Items);
+            LockNodeId = reader.ReadGuid();
+            LockId = reader.ReadLong();
+            LockTime = reader.ReadTimestamp();
+        }
+
+        /// <summary>
+        /// Writes this object to the given writer.
+        /// </summary>
+        /// <param name="writer">Writer.</param>
+        public void WriteBinary(IBinaryRawWriter writer)
+        {
+            ((IgniteSessionStateItemCollection)Items).Collection.WriteBinary(writer);
+            writer.WriteByteArray(SerializeStaticObjects());
+            writer.WriteInt(Timeout);
+
+            writer.WriteGuid(LockNodeId);
+            writer.WriteLong(LockId);
+            writer.WriteTimestamp(LockTime);
+        }
+
+        /// <summary>
+        /// Gets or sets the lock node id. Null means not locked.
+        /// </summary>
+        public Guid? LockNodeId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the lock id.
+        /// </summary>
+        public long LockId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the lock time.
+        /// </summary>
+        public DateTime? LockTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether only dirty changed things should be serialized.
+        /// </summary>
+        public bool WriteChangesOnly
+        {
+            get { return ((IgniteSessionStateItemCollection) Items).Collection.WriteChangesOnly; }
+            set { ((IgniteSessionStateItemCollection) Items).Collection.WriteChangesOnly = value; }
         }
 
         /// <summary>
@@ -49,45 +86,9 @@ namespace Apache.Ignite.AspNet.Impl
         /// <param name="staticObjects">The static objects.</param>
         /// <param name="timeout">The timeout.</param>
         public IgniteSessionStateStoreData(HttpStaticObjectsCollection staticObjects, int timeout) 
-            : base(null, staticObjects, 0)
+            : base(new IgniteSessionStateItemCollection(new KeyValueDirtyTrackedCollection()), staticObjects, timeout)
         {
-            _data = new SessionStateData
-            {
-                Timeout = timeout
-            };
-
-            _items = new IgniteSessionStateItemCollection(_data.Items);
-        }
-
-        /// <summary>
-        /// The session variables and values for the current session.
-        /// </summary>
-        public override ISessionStateItemCollection Items
-        {
-            get { return _items; }
-        }
-
-        /// <summary>
-        /// Gets and sets the amount of time, in minutes, allowed between requests before the session-state 
-        /// provider terminates the session.
-        /// </summary>
-        public override int Timeout
-        {
-            get { return _data.Timeout; }
-            set { _data.Timeout = value; }
-        }
-
-        /// <summary>
-        /// Gets the data.
-        /// </summary>
-        public SessionStateData Data
-        {
-            get
-            {
-                _data.StaticObjects = SerializeStaticObjects();
-
-                return _data;
-            }
+            // No-op.
         }
 
         /// <summary>

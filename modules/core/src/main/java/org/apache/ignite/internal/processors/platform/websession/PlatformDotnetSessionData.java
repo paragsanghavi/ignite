@@ -221,11 +221,6 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @param writer Binary writer.
      */
     public void writeBinary(BinaryRawWriter writer) {
-        writer.writeInt(timeout);
-        writer.writeUuid(lockNodeId);
-        writer.writeLong(lockId);
-        writer.writeTimestamp(lockTime);
-
         writer.writeBoolean(isDiff);
         writer.writeInt(items.size());
 
@@ -235,6 +230,11 @@ public class PlatformDotnetSessionData implements Binarylizable {
         }
 
         writer.writeByteArray(staticObjects);
+
+        writer.writeInt(timeout);
+        writer.writeUuid(lockNodeId);
+        writer.writeLong(lockId);
+        writer.writeTimestamp(lockTime);
     }
 
     /** {@inheritDoc} */
@@ -250,11 +250,6 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @param reader Reader.
      */
     public void readBinary(BinaryRawReader reader) {
-        timeout = reader.readInt();
-        lockNodeId = reader.readUuid();
-        lockId = reader.readLong();
-        lockTime = reader.readTimestamp();
-
         items = new TreeMap<>();
         isDiff = reader.readBoolean();
         int count = reader.readInt();
@@ -263,6 +258,11 @@ public class PlatformDotnetSessionData implements Binarylizable {
             items.put(reader.readString(), reader.readByteArray());
 
         staticObjects = reader.readByteArray();
+
+        timeout = reader.readInt();
+        lockNodeId = reader.readUuid();
+        lockId = reader.readLong();
+        lockTime = reader.readTimestamp();
     }
 
     /** {@inheritDoc} */

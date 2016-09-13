@@ -40,7 +40,16 @@ namespace Apache.Ignite.AspNet.Impl
         {
             Debug.Assert(collection != null);
 
+            // TODO: Merge classes
             _collection = collection;
+        }
+
+        /// <summary>
+        /// Gets the collection.
+        /// </summary>
+        public KeyValueDirtyTrackedCollection Collection
+        {
+            get { return _collection; }
         }
 
         /** <inheritdoc /> */

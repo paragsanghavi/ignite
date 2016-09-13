@@ -77,7 +77,7 @@ namespace Apache.Ignite.AspNet
         private volatile string _applicationId;
 
         /** */
-        private volatile ExpiryCacheHolder<string, SessionStateData> _expiryCacheHolder;
+        private volatile ExpiryCacheHolder<string, IgniteSessionStateStoreData> _expiryCacheHolder;
 
         /** */
         private volatile ILogger _log;
@@ -96,9 +96,9 @@ namespace Apache.Ignite.AspNet
         {
             base.Initialize(name, config);
 
-            var cache = ConfigUtil.InitializeCache<string, SessionStateData>(config, GetType());
+            var cache = ConfigUtil.InitializeCache<string, IgniteSessionStateStoreData>(config, GetType());
 
-            _expiryCacheHolder = new ExpiryCacheHolder<string, SessionStateData>(cache);
+            _expiryCacheHolder = new ExpiryCacheHolder<string, IgniteSessionStateStoreData>(cache);
 
             _applicationId = config[ApplicationId];
 
@@ -188,7 +188,7 @@ namespace Apache.Ignite.AspNet
                 {
                     Log("GetItem session store data found", id, context);
 
-                    return new IgniteSessionStateStoreData(data);
+                    return data;
                 }
 
                 Log("GetItem session store data locked", id, context);
@@ -270,7 +270,7 @@ namespace Apache.Ignite.AspNet
 
             locked = false;
 
-            return new IgniteSessionStateStoreData(lockResult.Data);
+            return lockResult.Data;
         }
 
         /// <summary>
@@ -305,11 +305,9 @@ namespace Apache.Ignite.AspNet
 
             Debug.Assert(item != null);
 
-            var data = ((IgniteSessionStateStoreData) item).Data;
-
             var key = GetKey(id);
 
-            SetAndUnlockItem(key, data);
+            SetAndUnlockItem(key, (IgniteSessionStateStoreData) item);
         }
 
         /// <summary>
@@ -373,7 +371,7 @@ namespace Apache.Ignite.AspNet
 
             var key = GetKey(id);
 
-            var data = new SessionStateData { Timeout = timeout };
+            var data = new IgniteSessionStateStoreData(new HttpStaticObjectsCollection(), timeout);
 
             PutItem(key, data, cache);
         }
@@ -390,7 +388,7 @@ namespace Apache.Ignite.AspNet
         /// <summary>
         /// Gets the cache.
         /// </summary>
-        private ICache<string, SessionStateData> Cache
+        private ICache<string, IgniteSessionStateStoreData> Cache
         {
             get
             {
@@ -480,9 +478,9 @@ namespace Apache.Ignite.AspNet
         /// <summary>
         /// Sets and unlocks the item.
         /// </summary>
-        private void SetAndUnlockItem(string key, SessionStateData data)
+        private void SetAndUnlockItem(string key, IgniteSessionStateStoreData data)
         {
-            data.Items.WriteChangesOnly = true;  // Write diff.
+            data.WriteChangesOnly = true;  // Write diff.
 
             var cache = _expiryCacheHolder.GetCacheWithExpiry(data.Timeout * 60);
 
@@ -497,7 +495,7 @@ namespace Apache.Ignite.AspNet
         /// <summary>
         /// Puts the item.
         /// </summary>
-        private void PutItem(string key, SessionStateData data, ICache<string, SessionStateData> cache)
+        private void PutItem(string key, IgniteSessionStateStoreData data, ICache<string, IgniteSessionStateStoreData> cache)
         {
             OutOp(Op.Put, w =>
             {
@@ -509,9 +507,9 @@ namespace Apache.Ignite.AspNet
         /// <summary>
         /// Gets the item.
         /// </summary>
-        private SessionStateData GetItem(string key)
+        private IgniteSessionStateStoreData GetItem(string key)
         {
-            return OutInOp(Op.Get, w => w.WriteString(key), r => new SessionStateData(r));
+            return OutInOp(Op.Get, w => w.WriteString(key), r => new IgniteSessionStateStoreData(r));
         }
 
         /// <summary>
@@ -526,7 +524,7 @@ namespace Apache.Ignite.AspNet
         /// Invokes the extension operation.
         /// </summary>
         private void OutOp(Op op, Action<IBinaryRawWriter> writeAction, 
-            ICache<string, SessionStateData> cache = null)
+            ICache<string, IgniteSessionStateStoreData> cache = null)
         {
             OutInOp<object>(op, writeAction, null, cache);
         }
@@ -535,7 +533,7 @@ namespace Apache.Ignite.AspNet
         /// Invokes the extension operation.
         /// </summary>
         private T OutInOp<T>(Op op, Action<IBinaryRawWriter> writeAction, Func<IBinaryRawReader, T> readFunc, 
-            ICache<string, SessionStateData> cache = null)
+            ICache<string, IgniteSessionStateStoreData> cache = null)
         {
             cache = cache ?? Cache;
 
