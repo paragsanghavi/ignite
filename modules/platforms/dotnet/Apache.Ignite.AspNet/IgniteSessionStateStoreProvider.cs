@@ -48,7 +48,7 @@ namespace Apache.Ignite.AspNet
     public class IgniteSessionStateStoreProvider : SessionStateStoreProviderBase
     {
         /** Extension id  */
-        private const int ExtensionId = 1;
+        private const int ExtensionId = 0;
 
         /// <summary>
         /// Op codes for <see cref="ICacheInternal.InvokeExtension{T}"/>.
