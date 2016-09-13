@@ -33,7 +33,7 @@ namespace Apache.Ignite.AspNet.Impl
         /// </summary>
         /// <param name="reader">The reader.</param>
         public IgniteSessionStateStoreData(IBinaryRawReader reader) : base(
-            new IgniteSessionStateItemCollection(new KeyValueDirtyTrackedCollection(reader)),
+            new IgniteSessionStateItemCollection(reader),
             DeserializeStaticObjects(reader.ReadByteArray()), reader.ReadInt())
         {
             LockNodeId = reader.ReadGuid();
@@ -47,7 +47,7 @@ namespace Apache.Ignite.AspNet.Impl
         /// <param name="writer">Writer.</param>
         public void WriteBinary(IBinaryRawWriter writer)
         {
-            ((IgniteSessionStateItemCollection)Items).Collection.WriteBinary(writer);
+            ((IgniteSessionStateItemCollection)Items).WriteBinary(writer);
             writer.WriteByteArray(SerializeStaticObjects());
             writer.WriteInt(Timeout);
 
@@ -76,8 +76,8 @@ namespace Apache.Ignite.AspNet.Impl
         /// </summary>
         public bool WriteChangesOnly
         {
-            get { return ((IgniteSessionStateItemCollection) Items).Collection.WriteChangesOnly; }
-            set { ((IgniteSessionStateItemCollection) Items).Collection.WriteChangesOnly = value; }
+            get { return ((IgniteSessionStateItemCollection) Items).WriteChangesOnly; }
+            set { ((IgniteSessionStateItemCollection) Items).WriteChangesOnly = value; }
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Apache.Ignite.AspNet.Impl
         /// <param name="staticObjects">The static objects.</param>
         /// <param name="timeout">The timeout.</param>
         public IgniteSessionStateStoreData(HttpStaticObjectsCollection staticObjects, int timeout) 
-            : base(new IgniteSessionStateItemCollection(new KeyValueDirtyTrackedCollection()), staticObjects, timeout)
+            : base(new IgniteSessionStateItemCollection(), staticObjects, timeout)
         {
             // No-op.
         }
