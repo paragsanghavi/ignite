@@ -21,7 +21,9 @@ namespace Apache.Ignite.AspNet.Impl
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
+    using System.Runtime.Serialization.Formatters.Binary;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Impl.Common;
 
@@ -204,7 +206,7 @@ namespace Apache.Ignite.AspNet.Impl
 
                 var removed = GetRemovedKeys();
 
-                var count = _list.Count + (removed == null ? 0 : removed.Count);
+                var count = _list.Count(x => x.IsDirty) + (removed == null ? 0 : removed.Count);
 
                 writer.WriteInt(count);  // reserve count
 
@@ -215,8 +217,6 @@ namespace Apache.Ignite.AspNet.Impl
                     {
                         writer.WriteString(removedKey);
                         writer.WriteByteArray(null);
-
-                        count++;
                     }
                 }
 
@@ -230,12 +230,13 @@ namespace Apache.Ignite.AspNet.Impl
 
                     // Write as byte array to enable partial deserialization.
                     writer.WriteByteArray(entry.GetBytes());
-
-                    count++;
                 }
             }
         }
 
+        /// <summary>
+        /// Gets the removed keys.
+        /// </summary>
         private ICollection<string> GetRemovedKeys()
         {
             if (_removedKeys == null)
@@ -458,8 +459,11 @@ namespace Apache.Ignite.AspNet.Impl
                 {
                     if (!_isDeserialized)
                     {
-                        // TODO: BinaryFormatter
-                        //_value = _marsh.Unmarshal<object>((byte[]) _value);
+                        using (var stream = new MemoryStream((byte[])_value))
+                        {
+                            _value = new BinaryFormatter().Deserialize(stream);
+                        }
+
                         _isDeserialized = true;
                     }
 
@@ -491,9 +495,12 @@ namespace Apache.Ignite.AspNet.Impl
                 if (!_isDeserialized)
                     return (byte[]) _value;
 
-                // TODO: BinaryFormatter
-                //return marsh.Marshal(_value);
-                return null;
+                using (var stream = new MemoryStream())
+                {
+                    new BinaryFormatter().Serialize(stream, _value);
+
+                    return stream.ToArray();
+                }
             }
         }
     }

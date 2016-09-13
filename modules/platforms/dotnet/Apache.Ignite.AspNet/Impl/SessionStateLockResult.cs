@@ -43,7 +43,10 @@ namespace Apache.Ignite.AspNet.Impl
         public SessionStateLockResult(IBinaryRawReader reader)
         {
             _success = reader.ReadBoolean();
-            _data = reader.ReadObject<SessionStateData>();
+
+            if (_success)
+                _data = new SessionStateData(reader);
+
             _lockTime = reader.ReadTimestamp();
 
             Debug.Assert(_success ^ (_data == null));

@@ -18,8 +18,11 @@
 namespace Apache.Ignite.Core.Tests.AspNet
 {
     using System;
+    using System.IO;
     using System.Linq;
     using Apache.Ignite.AspNet.Impl;
+    using Apache.Ignite.Core.Impl.Binary;
+    using Apache.Ignite.Core.Impl.Binary.IO;
     using NUnit.Framework;
 
     /// <summary>
@@ -34,7 +37,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
         public void TestEmpty()
         {
             var col1 = new KeyValueDirtyTrackedCollection();
-            var col2 = TestUtils.SerializeDeserialize(col1);
+            var col2 = SerializeDeserialize(col1);
 
             foreach (var col in new[] {col1, col2})
             {
@@ -91,7 +94,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
             Assert.AreEqual(3, col["1"]);
 
             // Serialize.
-            var col0 = TestUtils.SerializeDeserialize(col);
+            var col0 = SerializeDeserialize(col);
 
             Assert.AreEqual(col.GetKeys(), col0.GetKeys());
             Assert.AreEqual(col.GetKeys().Select(x => col[x]), col0.GetKeys().Select(x => col0[x]));
@@ -147,7 +150,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
 
             var col = getCol();
 
-            var col0 = TestUtils.SerializeDeserialize(col);
+            var col0 = SerializeDeserialize(col);
 
             Assert.AreEqual(3, col0.Count);
 
@@ -166,7 +169,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
 
             // Apply serialized changes without WriteChangesOnly.
             col = getCol();
-            col.ApplyChanges(TestUtils.SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0));
 
             Assert.AreEqual(3, col.Count);
             Assert.AreEqual(null, col["1"]);
@@ -178,7 +181,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
             col0.WriteChangesOnly = true;
 
             col = getCol();
-            col.ApplyChanges(TestUtils.SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0));
 
             Assert.AreEqual(3, col.Count);
             Assert.AreEqual(null, col["1"]);
@@ -192,19 +195,19 @@ namespace Apache.Ignite.Core.Tests.AspNet
             col0["2"] = 222;
 
             col = getCol();
-            col.ApplyChanges(TestUtils.SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0));
 
             Assert.AreEqual(2, col.Count);
             Assert.AreEqual(222, col["2"]);
             Assert.AreEqual(44, col["4"]);
 
             // Remove all.
-            col0 = TestUtils.SerializeDeserialize(getCol());
+            col0 = SerializeDeserialize(getCol());
             col0.WriteChangesOnly = true;
             col0.Clear();
 
             col = getCol();
-            col.ApplyChanges(TestUtils.SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0));
 
             Assert.AreEqual(0, col.Count);
 
@@ -213,14 +216,14 @@ namespace Apache.Ignite.Core.Tests.AspNet
             col0["-2"] = -2;
 
             col = getCol();
-            col.ApplyChanges(TestUtils.SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0));
 
             Assert.AreEqual(2, col.Count);
             Assert.AreEqual(-1, col0["-1"]);
             Assert.AreEqual(-2, col0["-2"]);
 
             // Remove initial key, then add it back, then remove again.
-            col0 = TestUtils.SerializeDeserialize(getCol());
+            col0 = SerializeDeserialize(getCol());
             col0.WriteChangesOnly = true;
 
             col0.Remove("1");
@@ -229,10 +232,29 @@ namespace Apache.Ignite.Core.Tests.AspNet
             col0.Remove("1");
 
             col = getCol();
-            col.ApplyChanges(TestUtils.SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0));
 
             Assert.AreEqual(1, col.Count);
             Assert.AreEqual(3, col["3"]);
+        }
+
+        /// <summary>
+        /// Serializes and deserializes back an instance.
+        /// </summary>
+        private static KeyValueDirtyTrackedCollection SerializeDeserialize(KeyValueDirtyTrackedCollection data)
+        {
+            var marsh = BinaryUtils.Marshaller;
+
+            using (var stream = new BinaryHeapStream(128))
+            {
+                var writer = marsh.StartMarshal(stream);
+
+                data.WriteBinary(writer.GetRawWriter());
+
+                stream.Seek(0, SeekOrigin.Begin);
+
+                return new KeyValueDirtyTrackedCollection(marsh.StartUnmarshal(stream));
+            }
         }
     }
 }

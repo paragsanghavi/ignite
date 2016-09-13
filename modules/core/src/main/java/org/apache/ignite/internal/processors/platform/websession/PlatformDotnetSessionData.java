@@ -212,39 +212,57 @@ public class PlatformDotnetSessionData implements Binarylizable {
     @Override public void writeBinary(BinaryWriter writer) throws BinaryObjectException {
         BinaryRawWriter raw = writer.rawWriter();
 
-        raw.writeInt(timeout);
-        raw.writeUuid(lockNodeId);
-        raw.writeLong(lockId);
-        raw.writeTimestamp(lockTime);
+        writeBinary(raw);
+    }
 
-        raw.writeBoolean(isDiff);
-        raw.writeInt(items.size());
+    /**
+     * Writes to a binary writer.
+     *
+     * @param writer Binary writer.
+     */
+    public void writeBinary(BinaryRawWriter writer) {
+        writer.writeInt(timeout);
+        writer.writeUuid(lockNodeId);
+        writer.writeLong(lockId);
+        writer.writeTimestamp(lockTime);
+
+        writer.writeBoolean(isDiff);
+        writer.writeInt(items.size());
 
         for (Map.Entry<String, byte[]> e : items.entrySet()) {
-            raw.writeString(e.getKey());
-            raw.writeByteArray(e.getValue());
+            writer.writeString(e.getKey());
+            writer.writeByteArray(e.getValue());
         }
 
-        raw.writeByteArray(staticObjects);
+        writer.writeByteArray(staticObjects);
     }
 
     /** {@inheritDoc} */
     @Override public void readBinary(BinaryReader reader) throws BinaryObjectException {
         BinaryRawReader raw = reader.rawReader();
 
-        timeout = raw.readInt();
-        lockNodeId = raw.readUuid();
-        lockId = raw.readLong();
-        lockTime = raw.readTimestamp();
+        readBinary(raw);
+    }
+
+    /**
+     * Reads from a binary reader.
+     *
+     * @param reader Reader.
+     */
+    public void readBinary(BinaryRawReader reader) {
+        timeout = reader.readInt();
+        lockNodeId = reader.readUuid();
+        lockId = reader.readLong();
+        lockTime = reader.readTimestamp();
 
         items = new TreeMap<>();
-        isDiff = raw.readBoolean();
-        int count = raw.readInt();
+        isDiff = reader.readBoolean();
+        int count = reader.readInt();
 
         for (int i = 0; i < count; i++)
-            items.put(raw.readString(), raw.readByteArray());
+            items.put(reader.readString(), reader.readByteArray());
 
-        staticObjects = raw.readByteArray();
+        staticObjects = reader.readByteArray();
     }
 
     /** {@inheritDoc} */

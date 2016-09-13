@@ -18,11 +18,12 @@
 package org.apache.ignite.internal.processors.platform.websession;
 
 import org.apache.ignite.IgniteCheckedException;
-import org.apache.ignite.binary.BinaryReader;
 import org.apache.ignite.internal.binary.BinaryRawReaderEx;
+import org.apache.ignite.internal.binary.BinaryRawWriterEx;
 import org.apache.ignite.internal.processors.platform.cache.PlatformCache;
 import org.apache.ignite.internal.processors.platform.cache.PlatformCacheExtension;
 import org.apache.ignite.internal.processors.platform.memory.PlatformMemory;
+import org.apache.ignite.internal.processors.platform.utils.PlatformWriterClosure;
 import org.apache.ignite.internal.util.typedef.internal.S;
 
 import java.sql.Timestamp;
@@ -66,10 +67,14 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
                 long lockId = reader.readLong();
                 Timestamp lockTime = reader.readTimestamp();
 
-                Object res = target.rawCache().invoke(key,
-                    new PlatformDotnetSessionLockProcessor(lockNodeId, lockId, lockTime));
+                final PlatformDotnetSessionLockResult res = (PlatformDotnetSessionLockResult)
+                    target.rawCache().invoke(key, new PlatformDotnetSessionLockProcessor(lockNodeId, lockId, lockTime));
 
-                return target.writeResult(mem, res);
+                return target.writeResult(mem, res, new PlatformWriterClosure() {
+                    @Override public void write(BinaryRawWriterEx writer, Object val) {
+                        res.writeBinary(writer);
+                    }
+                });
             }
 
             case OP_SET_AND_UNLOCK: {
@@ -78,7 +83,9 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
                 PlatformDotnetSessionSetAndUnlockProcessor proc;
 
                 if (reader.readBoolean()) {
-                    PlatformDotnetSessionData data = reader.readObject();
+                    PlatformDotnetSessionData data = new PlatformDotnetSessionData();
+
+                    data.readBinary(reader);
 
                     proc = new PlatformDotnetSessionSetAndUnlockProcessor(data);
                 }
@@ -97,9 +104,13 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
             case OP_GET: {
                 String key = reader.readString();
 
-                PlatformDotnetSessionData data = (PlatformDotnetSessionData)target.rawCache().get(key);
+                final PlatformDotnetSessionData data = (PlatformDotnetSessionData)target.rawCache().get(key);
 
-                return target.writeResult(mem, data);
+                return target.writeResult(mem, data, new PlatformWriterClosure() {
+                    @Override public void write(BinaryRawWriterEx writer, Object val) {
+                        data.writeBinary(writer);
+                    }
+                });
             }
 
             case OP_PUT: {
@@ -107,7 +118,7 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
 
                 PlatformDotnetSessionData data = new PlatformDotnetSessionData();
 
-                data.readBinary((BinaryReader)reader);
+                data.readBinary(reader);
 
                 target.rawCache().put(key, data);
 

@@ -18,7 +18,10 @@
 namespace Apache.Ignite.Core.Tests.AspNet
 {
     using System;
+    using System.IO;
     using Apache.Ignite.AspNet.Impl;
+    using Apache.Ignite.Core.Impl.Binary;
+    using Apache.Ignite.Core.Impl.Binary.IO;
     using NUnit.Framework;
 
     /// <summary>
@@ -60,7 +63,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
             data.Items["key1"] = 1;
             data.Items["key2"] = 2;
 
-            var data0 = TestUtils.SerializeDeserialize(data);
+            var data0 = SerializeDeserialize(data);
 
             Assert.AreEqual(data.Timeout, data0.Timeout);
             Assert.AreEqual(data.LockId, data0.LockId);
@@ -68,6 +71,25 @@ namespace Apache.Ignite.Core.Tests.AspNet
             Assert.AreEqual(data.LockTime, data0.LockTime);
             Assert.AreEqual(data.StaticObjects, data0.StaticObjects);
             Assert.AreEqual(data.Items.GetKeys(), data0.Items.GetKeys());
+        }
+
+        /// <summary>
+        /// Serializes and deserializes back an instance.
+        /// </summary>
+        private static SessionStateData SerializeDeserialize(SessionStateData data)
+        {
+            var marsh = BinaryUtils.Marshaller;
+
+            using (var stream = new BinaryHeapStream(128))
+            {
+                var writer = marsh.StartMarshal(stream);
+
+                data.WriteBinary(writer.GetRawWriter());
+
+                stream.Seek(0, SeekOrigin.Begin);
+
+                return new SessionStateData(marsh.StartUnmarshal(stream));
+            }
         }
     }
 }

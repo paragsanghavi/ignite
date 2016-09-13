@@ -525,7 +525,7 @@ public class PlatformCache extends PlatformAbstractTarget {
     /**
      * Writes the result to reused stream, if any.
      */
-    private long writeResult(PlatformMemory mem, Object obj, PlatformWriterClosure clo) {
+    public long writeResult(PlatformMemory mem, Object obj, PlatformWriterClosure clo) {
         if (obj == null)
             return FALSE;
 

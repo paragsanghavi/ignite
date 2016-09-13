@@ -49,6 +49,8 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
      * @param lockTime Lock time.
      */
     public PlatformDotnetSessionLockResult(boolean success, PlatformDotnetSessionData data, Timestamp lockTime) {
+        assert success ^ (data == null);
+
         this.success = success;
         this.data = data;
         this.lockTime = lockTime;
@@ -79,9 +81,21 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
     @Override public void writeBinary(BinaryWriter writer) throws BinaryObjectException {
         BinaryRawWriter raw = writer.rawWriter();
 
-        raw.writeBoolean(success);
-        raw.writeObject(data);
-        raw.writeTimestamp(lockTime);
+        writeBinary(raw);
+    }
+
+    /**
+     * Writes to a binary writer.
+     *
+     * @param writer Binary writer.
+     */
+    public void writeBinary(BinaryRawWriter writer) {
+        writer.writeBoolean(success);
+
+        if (success)
+            data.writeBinary(writer);
+
+        writer.writeTimestamp(lockTime);
     }
 
     /** {@inheritDoc} */
@@ -89,7 +103,12 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
         BinaryRawReader raw = reader.rawReader();
 
         success = raw.readBoolean();
-        data = raw.readObject();
+
+        if (success) {
+            data = new PlatformDotnetSessionData();
+            data.readBinary(raw);
+        }
+
         lockTime = raw.readTimestamp();
     }
 
