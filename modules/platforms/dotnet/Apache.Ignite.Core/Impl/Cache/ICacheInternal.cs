@@ -41,11 +41,12 @@ namespace Apache.Ignite.Core.Impl.Cache
         /// Invokes a cache extension.
         /// </summary>
         /// <typeparam name="T">The type of the result.</typeparam>
+        /// <param name="extensionId">The extension identifier.</param>
         /// <param name="opCode">The extension op code.</param>
         /// <param name="writeAction">The write action.</param>
         /// <returns>
         /// Result of the processing.
         /// </returns>
-        T InvokeExtension<T>(CacheInvokeOp opCode, Action<IBinaryRawWriter> writeAction);
+        T InvokeExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction);
     }
 }

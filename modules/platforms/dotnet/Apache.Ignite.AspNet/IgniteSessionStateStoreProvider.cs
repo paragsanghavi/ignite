@@ -47,6 +47,21 @@ namespace Apache.Ignite.AspNet
     /// </summary>
     public class IgniteSessionStateStoreProvider : SessionStateStoreProviderBase
     {
+        /** Extension id  */
+        private const int ExtensionId = 1;
+
+        /// <summary>
+        /// Op codes for <see cref="ICacheInternal.InvokeExtension{T}"/>.
+        /// </summary>
+        private enum Op
+        {
+            /** Lock the session data. */
+            SessionLock = 1,
+
+            /** Update and unlock the session data. */
+            SessionSetAndUnlock = 2
+        }
+
         /** Application id config parameter. */
         private const string ApplicationId = "applicationId";
 
@@ -431,11 +446,12 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private SessionStateLockResult LockItem(string key, long lockId)
         {
-            return ((ICacheInternal) Cache).InvokeExtension<SessionStateLockResult>(CacheInvokeOp.SessionLock, w =>
-            {
-                w.WriteString(key);
-                WriteLockInfo(w, lockId, true);
-            });
+            return ((ICacheInternal) Cache).InvokeExtension<SessionStateLockResult>(ExtensionId, (int) Op.SessionLock,
+                w =>
+                {
+                    w.WriteString(key);
+                    WriteLockInfo(w, lockId, true);
+                });
         }
 
         /// <summary>
@@ -443,12 +459,13 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private void UnlockItem(string key, long lockId)
         {
-            ((ICacheInternal) Cache).InvokeExtension<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
-            {
-                w.WriteString(key);
-                w.WriteBoolean(false);  // Only unlock.
-                WriteLockInfo(w, lockId);
-            });
+            ((ICacheInternal) Cache).InvokeExtension<object>(ExtensionId, (int) Op.SessionSetAndUnlock,
+                w =>
+                {
+                    w.WriteString(key);
+                    w.WriteBoolean(false); // Only unlock.
+                    WriteLockInfo(w, lockId);
+                });
         }
 
         /// <summary>
@@ -460,12 +477,13 @@ namespace Apache.Ignite.AspNet
 
             var cache = _expiryCacheHolder.GetCacheWithExpiry(data.Timeout * 60);
 
-            ((ICacheInternal) cache).InvokeExtension<object>(CacheInvokeOp.SessionSetAndUnlock, w =>
-            {
-                w.WriteString(key);
-                w.WriteBoolean(true);  // Unlock and update.
-                w.WriteObject(data);
-            });
+            ((ICacheInternal) cache).InvokeExtension<object>(ExtensionId, (int) Op.SessionSetAndUnlock,
+                w =>
+                {
+                    w.WriteString(key);
+                    w.WriteBoolean(true); // Unlock and update.
+                    w.WriteObject(data);
+                });
         }
     }
 }
