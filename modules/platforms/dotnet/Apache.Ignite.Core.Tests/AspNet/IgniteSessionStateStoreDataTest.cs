@@ -106,7 +106,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
             {
                 var writer = marsh.StartMarshal(stream);
 
-                data.WriteBinary(writer.GetRawWriter());
+                data.WriteBinary(writer.GetRawWriter(), false);
 
                 stream.Seek(0, SeekOrigin.Begin);
 

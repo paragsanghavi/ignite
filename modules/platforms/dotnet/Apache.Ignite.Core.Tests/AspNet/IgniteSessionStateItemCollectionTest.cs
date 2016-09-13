@@ -188,10 +188,8 @@ namespace Apache.Ignite.Core.Tests.AspNet
             Assert.AreEqual(44, col["4"]);
 
             // Apply serialized changes with WriteChangesOnly.
-            col0.WriteChangesOnly = true;
-
             col = getCol();
-            col.ApplyChanges(SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0, true));
 
             Assert.AreEqual(3, col.Count);
             Assert.AreEqual(null, col["1"]);
@@ -213,11 +211,10 @@ namespace Apache.Ignite.Core.Tests.AspNet
 
             // Remove all.
             col0 = SerializeDeserialize(getCol());
-            col0.WriteChangesOnly = true;
             col0.Clear();
 
             col = getCol();
-            col.ApplyChanges(SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0, true));
 
             Assert.AreEqual(0, col.Count);
 
@@ -234,7 +231,6 @@ namespace Apache.Ignite.Core.Tests.AspNet
 
             // Remove initial key, then add it back, then remove again.
             col0 = SerializeDeserialize(getCol());
-            col0.WriteChangesOnly = true;
 
             col0.Remove("1");
             col0.Remove("2");
@@ -242,7 +238,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
             col0.Remove("1");
 
             col = getCol();
-            col.ApplyChanges(SerializeDeserialize(col0));
+            col.ApplyChanges(SerializeDeserialize(col0, true));
 
             Assert.AreEqual(1, col.Count);
             Assert.AreEqual(3, col["3"]);
@@ -251,7 +247,8 @@ namespace Apache.Ignite.Core.Tests.AspNet
         /// <summary>
         /// Serializes and deserializes back an instance.
         /// </summary>
-        private static IgniteSessionStateItemCollection SerializeDeserialize(IgniteSessionStateItemCollection data)
+        private static IgniteSessionStateItemCollection SerializeDeserialize(IgniteSessionStateItemCollection data, 
+            bool changesOnly = false)
         {
             var marsh = BinaryUtils.Marshaller;
 
@@ -259,7 +256,7 @@ namespace Apache.Ignite.Core.Tests.AspNet
             {
                 var writer = marsh.StartMarshal(stream);
 
-                data.WriteBinary(writer.GetRawWriter());
+                data.WriteBinary(writer.GetRawWriter(), changesOnly);
 
                 stream.Seek(0, SeekOrigin.Begin);
 

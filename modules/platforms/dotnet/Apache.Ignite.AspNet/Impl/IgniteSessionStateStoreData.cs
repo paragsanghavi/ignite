@@ -42,12 +42,22 @@ namespace Apache.Ignite.AspNet.Impl
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="IgniteSessionStateStoreData"/> class.
+        /// </summary>
+        /// <param name="staticObjects">The static objects.</param>
+        /// <param name="timeout">The timeout.</param>
+        public IgniteSessionStateStoreData(HttpStaticObjectsCollection staticObjects, int timeout)
+            : base(new IgniteSessionStateItemCollection(), staticObjects, timeout)
+        {
+            // No-op.
+        }
+
+        /// <summary>
         /// Writes this object to the given writer.
         /// </summary>
-        /// <param name="writer">Writer.</param>
-        public void WriteBinary(IBinaryRawWriter writer)
+        public void WriteBinary(IBinaryRawWriter writer, bool changesOnly)
         {
-            ((IgniteSessionStateItemCollection)Items).WriteBinary(writer);
+            ((IgniteSessionStateItemCollection)Items).WriteBinary(writer, changesOnly);
             writer.WriteByteArray(SerializeStaticObjects());
             writer.WriteInt(Timeout);
 
@@ -70,26 +80,6 @@ namespace Apache.Ignite.AspNet.Impl
         /// Gets or sets the lock time.
         /// </summary>
         public DateTime? LockTime { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether only dirty changed things should be serialized.
-        /// </summary>
-        public bool WriteChangesOnly
-        {
-            get { return ((IgniteSessionStateItemCollection) Items).WriteChangesOnly; }
-            set { ((IgniteSessionStateItemCollection) Items).WriteChangesOnly = value; }
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="IgniteSessionStateStoreData"/> class.
-        /// </summary>
-        /// <param name="staticObjects">The static objects.</param>
-        /// <param name="timeout">The timeout.</param>
-        public IgniteSessionStateStoreData(HttpStaticObjectsCollection staticObjects, int timeout) 
-            : base(new IgniteSessionStateItemCollection(), staticObjects, timeout)
-        {
-            // No-op.
-        }
 
         /// <summary>
         /// Deserializes the static objects.

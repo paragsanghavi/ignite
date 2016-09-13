@@ -110,15 +110,16 @@ namespace Apache.Ignite.AspNet.Impl
                 "The number of elements in the source collection is greater than the available space " +
                 "from specified index to the end of the array.");
 
-            foreach (var key in GetKeys())
-                array.SetValue(key, index++);
+            // This should return only keys.
+            foreach (var entry in _list)
+                array.SetValue(entry.Key, index++);
         }
 
         /** <inheritdoc /> */
         public IEnumerator GetEnumerator()
         {
             // This should return only keys.
-            return GetKeys().GetEnumerator();
+            return _list.Select(x => x.Key).GetEnumerator();
         }
 
         /** <inheritdoc /> */
@@ -197,23 +198,9 @@ namespace Apache.Ignite.AspNet.Impl
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether only dirty changed things should be serialized.
-        /// </summary>
-        public bool WriteChangesOnly { get; set; }
-
-        /// <summary>
-        /// Gets the keys.
-        /// </summary>
-        public IEnumerable<string> GetKeys()
-        {
-            return _list.Select(x => x.Key);
-        }
-
-        /// <summary>
         /// Writes this object to the given writer.
         /// </summary>
-        /// <param name="writer">Writer.</param>
-        public void WriteBinary(IBinaryRawWriter writer)
+        public void WriteBinary(IBinaryRawWriter writer, bool changesOnly)
         {
             IgniteArgumentCheck.NotNull(writer, "writer");
 
@@ -221,7 +208,7 @@ namespace Apache.Ignite.AspNet.Impl
                 throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
                     "Cannot serialize incomplete {0}.", GetType()));
 
-            if (_isNew || _dirtyAll || !WriteChangesOnly || (_removedKeys == null && _list.All(x => x.IsDirty)))
+            if (_isNew || _dirtyAll || !changesOnly || (_removedKeys == null && _list.All(x => x.IsDirty)))
             {
                 // Write in full mode.
                 writer.WriteBoolean(false);

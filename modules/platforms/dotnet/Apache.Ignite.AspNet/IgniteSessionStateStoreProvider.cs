@@ -371,7 +371,7 @@ namespace Apache.Ignite.AspNet
 
             var key = GetKey(id);
 
-            var data = new IgniteSessionStateStoreData(new HttpStaticObjectsCollection(), timeout);
+            var data = new IgniteSessionStateStoreData(SessionStateUtility.GetSessionStaticObjects(context), timeout);
 
             PutItem(key, data, cache);
         }
@@ -480,15 +480,13 @@ namespace Apache.Ignite.AspNet
         /// </summary>
         private void SetAndUnlockItem(string key, IgniteSessionStateStoreData data)
         {
-            data.WriteChangesOnly = true;  // Write diff.
-
             var cache = _expiryCacheHolder.GetCacheWithExpiry(data.Timeout * 60);
 
             OutOp(Op.SetAndUnlock, w =>
             {
                 w.WriteString(key);
                 w.WriteBoolean(true); // Unlock and update.
-                data.WriteBinary(w);
+                data.WriteBinary(w, true);
             }, cache);
         }
 
@@ -500,7 +498,7 @@ namespace Apache.Ignite.AspNet
             OutOp(Op.Put, w =>
             {
                 w.WriteString(key);
-                data.WriteBinary(w);
+                data.WriteBinary(w, false);
             }, cache);
         }
 

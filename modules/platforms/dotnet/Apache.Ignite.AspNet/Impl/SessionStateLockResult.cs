@@ -19,7 +19,6 @@ namespace Apache.Ignite.AspNet.Impl
 {
     using System;
     using System.Diagnostics;
-    using System.Globalization;
     using Apache.Ignite.Core.Binary;
 
     /// <summary>
@@ -75,14 +74,6 @@ namespace Apache.Ignite.AspNet.Impl
         public DateTime? LockTime
         {
             get { return _lockTime; }
-        }
-
-        /// <summary>
-        /// Returns a <see cref="string" /> that represents this instance.
-        /// </summary>
-        public override string ToString()
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0} [Success={1}]", GetType().Name, _success);
         }
     }
 }
