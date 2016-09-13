@@ -54,7 +54,6 @@ import org.apache.ignite.internal.processors.platform.services.PlatformServices;
 import org.apache.ignite.internal.processors.platform.transactions.PlatformTransactions;
 import org.apache.ignite.internal.processors.platform.utils.PlatformConfigurationUtils;
 import org.apache.ignite.internal.processors.platform.utils.PlatformUtils;
-import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionCacheExtension;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteFuture;
@@ -62,6 +61,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -82,6 +83,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
     private final ReadWriteLock storeLock = new ReentrantReadWriteLock();
 
     /** Logger. */
+    @SuppressWarnings("FieldCanBeLocal")
     private final IgniteLogger log;
 
     /** Context. */
@@ -96,8 +98,8 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
     /** Whether processor if stopped (or stopping). */
     private volatile boolean stopped;
 
-    /** Session state extension. */
-    private final PlatformCacheExtension sessionExt = new PlatformDotnetSessionCacheExtension();
+    /** Cache extensions. */
+    private final PlatformCacheExtension[] cacheExts;
 
     /**
      * Constructor.
@@ -127,6 +129,9 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
 
         if (interopCfg.logger() != null)
             interopCfg.logger().setContext(platformCtx);
+
+        // Initialize cache extensions (if any).
+        cacheExts = prepareCacheExtensions(interopCfg.cacheExtensions());
     }
 
     /** {@inheritDoc} */
@@ -481,7 +486,7 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
      * Creates new platform cache.
      */
     private PlatformTarget createPlatformCache(IgniteCacheProxy cache) {
-        return new PlatformCache(platformCtx, cache, false, sessionExt);
+        return new PlatformCache(platformCtx, cache, false, cacheExts);
     }
 
     /**
@@ -512,6 +517,46 @@ public class PlatformProcessorImpl extends GridProcessorAdapter implements Platf
         }
         else
             throw new IgniteCheckedException("Unsupported interop store: " + store);
+    }
+
+    /**
+     * Prepare cache extensions.
+     *
+     * @param cacheExts Original extensions.
+     * @return Prepared extensions.
+     */
+    private static PlatformCacheExtension[] prepareCacheExtensions(Collection<PlatformCacheExtension> cacheExts) {
+        if (!F.isEmpty(cacheExts)) {
+            int maxExtId = 0;
+
+            Map<Integer, PlatformCacheExtension> idToExt = new HashMap<>();
+
+            for (PlatformCacheExtension cacheExt : cacheExts) {
+                if (cacheExt == null)
+                    throw new IgniteException("Platform cache extension cannot be null.");
+
+                if (cacheExt.id() < 0)
+                    throw new IgniteException("Platform cache extension ID cannot be negative: " + cacheExt);
+
+                PlatformCacheExtension oldCacheExt = idToExt.put(cacheExt.id(), cacheExt);
+
+                if (oldCacheExt != null)
+                    throw new IgniteException("Platform cache extensions cannot have the same ID [" +
+                        "id=" + cacheExt.id() + ", first=" + oldCacheExt + ", second=" + cacheExt + ']');
+
+                if (cacheExt.id() > maxExtId)
+                    maxExtId = cacheExt.id();
+            }
+
+            PlatformCacheExtension[] res = new PlatformCacheExtension[maxExtId];
+
+            for (PlatformCacheExtension cacheExt : cacheExts)
+                res[cacheExt.id()]= cacheExt;
+
+            return res;
+        }
+        else
+            return new PlatformCacheExtension[0];
     }
 
     /**

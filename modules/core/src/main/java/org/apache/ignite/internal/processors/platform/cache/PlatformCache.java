@@ -19,6 +19,7 @@ package org.apache.ignite.internal.processors.platform.cache;
 
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.IgniteException;
 import org.apache.ignite.binary.BinaryRawReader;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.CacheMetrics;
@@ -202,7 +203,7 @@ public class PlatformCache extends PlatformAbstractTarget {
     private final IgniteCacheProxy cache;
 
     /** Initial JCache (not in binary mode). */
-    private final IgniteCache cacheRaw;
+    private final IgniteCache rawCache;
 
     /** Whether this cache is created with "keepBinary" flag on the other side. */
     private final boolean keepBinary;
@@ -223,7 +224,7 @@ public class PlatformCache extends PlatformAbstractTarget {
     private static final AtomicLong LOCK_ID_GEN = new AtomicLong();
 
     /** Extensions. */
-    private final PlatformCacheExtension[] extensions;
+    private final PlatformCacheExtension[] exts;
 
     /**
      * Constructor.
@@ -232,15 +233,30 @@ public class PlatformCache extends PlatformAbstractTarget {
      * @param cache Underlying cache.
      * @param keepBinary Keep binary flag.
      */
+    public PlatformCache(PlatformContext platformCtx, IgniteCache cache, boolean keepBinary) {
+        this(platformCtx, cache, keepBinary, new PlatformCacheExtension[0]);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param platformCtx Context.
+     * @param cache Underlying cache.
+     * @param keepBinary Keep binary flag.
+     * @param exts Extensions.
+     */
     public PlatformCache(PlatformContext platformCtx, IgniteCache cache, boolean keepBinary,
-        PlatformCacheExtension... extensions) {
+        PlatformCacheExtension[] exts) {
         super(platformCtx);
 
-        cacheRaw = cache;
+        assert cache != null;
+        assert exts != null;
+
+        rawCache = cache;
 
         this.cache = (IgniteCacheProxy)cache.withKeepBinary();
         this.keepBinary = keepBinary;
-        this.extensions = extensions;
+        this.exts = exts;
     }
 
     /**
@@ -252,7 +268,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (cache.delegate().skipStore())
             return this;
 
-        return clone(cacheRaw.withSkipStore(), keepBinary);
+        return copy(rawCache.withSkipStore(), keepBinary);
     }
 
     /**
@@ -264,7 +280,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (keepBinary)
             return this;
 
-        return clone(cacheRaw.withKeepBinary(), true);
+        return copy(rawCache.withKeepBinary(), true);
     }
 
     /**
@@ -276,9 +292,9 @@ public class PlatformCache extends PlatformAbstractTarget {
      * @return Cache.
      */
     public PlatformCache withExpiryPolicy(final long create, final long update, final long access) {
-        IgniteCache cache0 = cacheRaw.withExpiryPolicy(new InteropExpiryPolicy(create, update, access));
+        IgniteCache cache0 = rawCache.withExpiryPolicy(new InteropExpiryPolicy(create, update, access));
 
-        return clone(cache0, keepBinary);
+        return copy(cache0, keepBinary);
     }
 
     /**
@@ -290,7 +306,7 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (cache.isAsync())
             return this;
 
-        return clone(cacheRaw.withAsync(), keepBinary);
+        return copy(rawCache.withAsync(), keepBinary);
     }
 
     /**
@@ -304,11 +320,19 @@ public class PlatformCache extends PlatformAbstractTarget {
         if (opCtx != null && opCtx.noRetries())
             return this;
 
-        return clone(cacheRaw.withNoRetries(), keepBinary);
+        return copy(rawCache.withNoRetries(), keepBinary);
+    }
+
+    /**
+     * @return Raw cache.
+     */
+    public IgniteCache rawCache() {
+        return rawCache;
     }
 
     /** {@inheritDoc} */
-    @Override protected long processInStreamOutLong(int type, BinaryRawReaderEx reader, PlatformMemory mem) throws IgniteCheckedException {
+    @Override protected long processInStreamOutLong(int type, BinaryRawReaderEx reader, PlatformMemory mem)
+        throws IgniteCheckedException {
         try {
             switch (type) {
                 case OP_PUT:
@@ -469,19 +493,9 @@ public class PlatformCache extends PlatformAbstractTarget {
                     return registerLock(cache.lockAll(PlatformUtils.readCollection(reader)));
 
                 case OP_EXTENSION:
-                    int opCode = reader.readInt();
+                    PlatformCacheExtension ext = extension(reader.readInt());
 
-                    if (extensions == null)
-                        throw new IgniteCheckedException("Cache extensions are not defined.");
-
-                    for (PlatformCacheExtension extension : extensions) {
-                        PlatformCacheExtensionResult res = extension.invoke(opCode, reader, cacheRaw);
-
-                        if (res.isMatch())
-                            return writeResult(mem, res.result());
-                    }
-
-                    throw new IgniteCheckedException("Unsupported cache extension type: " + type);
+                    return ext.processInOutStreamLong(this, reader.readInt(), reader, mem);
             }
         }
         catch (Exception e) {
@@ -504,7 +518,7 @@ public class PlatformCache extends PlatformAbstractTarget {
     /**
      * Writes the result to reused stream, if any.
      */
-    private long writeResult(PlatformMemory mem, Object obj) {
+    public long writeResult(PlatformMemory mem, Object obj) {
         return writeResult(mem, obj, null);
     }
 
@@ -1035,9 +1049,30 @@ public class PlatformCache extends PlatformAbstractTarget {
 
     /**
      * Clones this instance.
+     *
+     * @param cache Cache.
+     * @param keepBinary Keep binary flag.
+     * @return Cloned instance.
      */
-    private PlatformCache clone(IgniteCache cache, boolean keepBinary) {
-        return new PlatformCache(platformCtx, cache, keepBinary, extensions);
+    private PlatformCache copy(IgniteCache cache, boolean keepBinary) {
+        return new PlatformCache(platformCtx, cache, keepBinary, exts);
+    }
+
+    /**
+     * Get extension by ID.
+     *
+     * @param id ID.
+     * @return Extension.
+     */
+    private PlatformCacheExtension extension(int id) {
+        if (exts != null && id < exts.length) {
+            PlatformCacheExtension ext = exts[id];
+
+            if (ext != null)
+                return ext;
+        }
+
+        throw new IgniteException("Platform cache extension is not registered [id=" + id + ']');
     }
 
     /**

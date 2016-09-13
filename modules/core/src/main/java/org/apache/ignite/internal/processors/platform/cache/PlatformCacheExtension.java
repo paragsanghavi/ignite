@@ -17,21 +17,31 @@
 
 package org.apache.ignite.internal.processors.platform.cache;
 
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.binary.BinaryRawReader;
+import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.internal.binary.BinaryRawReaderEx;
+import org.apache.ignite.internal.processors.platform.memory.PlatformMemory;
 
 /**
- * Platform cache extension.
+ * Platform cache extension. Decouples other modules from cache.
  */
 public interface PlatformCacheExtension {
     /**
-     * Invokes the extension.
+     * Get extension ID. Must be unique among all extensions.
      *
-     * @param opCode Operation code.
-     * @param reader Reader.
-     * @param cache Cache.
-     *
-     * @return Invocation result: whether this extension handled the operation and resulting object.
+     * @return Extension ID.
      */
-    PlatformCacheExtensionResult invoke(int opCode, BinaryRawReader reader, IgniteCache cache);
+    public int id();
+
+    /**
+     * Invokes in-out operation with long return type.
+     *
+     * @param target Target cache.
+     * @param type Operation type.
+     * @param reader Reader.
+     * @param mem Memory.
+     * @return Result.
+     * @throws IgniteCheckedException If failed.
+     */
+    long processInOutStreamLong(PlatformCache target, int type, BinaryRawReaderEx reader, PlatformMemory mem)
+        throws IgniteCheckedException;
 }
