@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Apache.Ignite.AspNet.Tests.snk" />
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
