@@ -62,17 +62,17 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
     private int timeout;
 
     /**
-     * Constructor.
+     * Constructor for unlock.
      *
      * @param lockNodeId Lock node ID.
      * @param lockId Lock ID.
      */
     public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId) {
-        this(lockNodeId, lockId, false, null, false, null, -1);
+        this(lockNodeId, lockId, false, null, false, null, 0);
     }
 
     /**
-     * Constructor.
+     * Constructor for unlock/update.
      *
      * @param data Data.
      */
@@ -129,20 +129,23 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
         raw.writeUuid(lockNodeId);
         raw.writeLong(lockId);
         raw.writeBoolean(update);
-        raw.writeBoolean(isDiff);
-        raw.writeByteArray(staticData);
-        raw.writeInt(timeout);
 
-        if (items != null) {
-            raw.writeInt(items.size());
+        if (update) {
+            raw.writeBoolean(isDiff);
+            raw.writeByteArray(staticData);
+            raw.writeInt(timeout);
 
-            for (Map.Entry<String, byte[]> e : items.entrySet()) {
-                raw.writeString(e.getKey());
-                raw.writeByteArray(e.getValue());
+            if (items != null) {
+                raw.writeInt(items.size());
+
+                for (Map.Entry<String, byte[]> e : items.entrySet()) {
+                    raw.writeString(e.getKey());
+                    raw.writeByteArray(e.getValue());
+                }
             }
+            else
+                raw.writeInt(-1);
         }
-        else
-            raw.writeInt(-1);
     }
 
     /** {@inheritDoc} */
@@ -152,17 +155,20 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
         lockNodeId = raw.readUuid();
         lockId = raw.readLong();
         update = raw.readBoolean();
-        isDiff = raw.readBoolean();
-        staticData = raw.readByteArray();
-        timeout = raw.readInt();
 
-        int cnt = raw.readInt();
+        if (update) {
+            isDiff = raw.readBoolean();
+            staticData = raw.readByteArray();
+            timeout = raw.readInt();
 
-        if (cnt >= 0) {
-            items = new TreeMap<>();
+            int cnt = raw.readInt();
 
-            for (int i = 0; i < cnt; i++)
-                items.put(raw.readString(), raw.readByteArray());
+            if (cnt >= 0) {
+                items = new TreeMap<>();
+
+                for (int i = 0; i < cnt; i++)
+                    items.put(raw.readString(), raw.readByteArray());
+            }
         }
     }
 

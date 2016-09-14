@@ -161,6 +161,7 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @param lockNodeId Lock node ID.
      * @param lockId Lock ID.
      * @param items Items.
+     * @param isDiff Diff flag.
      * @param staticObjects Static objects.
      * @param timeout Timeout.
      * @return Result.

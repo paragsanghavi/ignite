@@ -42,7 +42,7 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
     private Timestamp lockTime;
 
     /**
-     * Ctor.
+     * Constructor.
      *
      * @param success Success flag.
      * @param data Session data.
@@ -54,27 +54,6 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
         this.success = success;
         this.data = data;
         this.lockTime = lockTime;
-    }
-
-    /**
-     * @return Success flag.
-     */
-    public boolean success() {
-        return success;
-    }
-
-    /**
-     * @return Session state data.
-     */
-    public PlatformDotnetSessionData data() {
-        return data;
-    }
-
-    /**
-     * @return Lock time.
-     */
-    public Timestamp lockTime() {
-        return lockTime;
     }
 
     /** {@inheritDoc} */
@@ -106,6 +85,7 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
 
         if (success) {
             data = new PlatformDotnetSessionData();
+
             data.readBinary(raw);
         }
 
