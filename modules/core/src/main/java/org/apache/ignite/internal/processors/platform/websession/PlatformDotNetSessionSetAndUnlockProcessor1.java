@@ -35,8 +35,8 @@ import java.util.UUID;
 /**
  * Processor to unlock and optionally update the session.
  */
-public class PlatformDotnetSessionSetAndUnlockProcessor implements
-    CacheEntryProcessor<String, PlatformDotnetSessionData, Void>, Binarylizable {
+public class PlatformDotNetSessionSetAndUnlockProcessor implements
+    CacheEntryProcessor<String, PlatformDotNetSessionData, Void>, Binarylizable {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -67,7 +67,7 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
      * @param lockNodeId Lock node ID.
      * @param lockId Lock ID.
      */
-    public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId) {
+    public PlatformDotNetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId) {
         this(lockNodeId, lockId, false, null, false, null, 0);
     }
 
@@ -76,7 +76,7 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
      *
      * @param data Data.
      */
-    public PlatformDotnetSessionSetAndUnlockProcessor(PlatformDotnetSessionData data) {
+    public PlatformDotNetSessionSetAndUnlockProcessor(PlatformDotNetSessionData data) {
         this(data.lockNodeId(), data.lockId(), true, data.items(), data.isDiff(), data.staticObjects(), data.timeout());
     }
 
@@ -91,7 +91,7 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
      * @param staticData Static data.
      * @param timeout Timeout.
      */
-    public PlatformDotnetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId, boolean update,
+    public PlatformDotNetSessionSetAndUnlockProcessor(UUID lockNodeId, long lockId, boolean update,
         Map<String, byte[]> items, boolean isDiff, byte[] staticData, int timeout) {
         this.lockNodeId = lockNodeId;
         this.lockId = lockId;
@@ -103,11 +103,11 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
     }
 
     /** {@inheritDoc} */
-    @Override public Void process(MutableEntry<String, PlatformDotnetSessionData> entry, Object... args)
+    @Override public Void process(MutableEntry<String, PlatformDotNetSessionData> entry, Object... args)
         throws EntryProcessorException {
         assert entry.exists();
 
-        PlatformDotnetSessionData data = entry.getValue();
+        PlatformDotNetSessionData data = entry.getValue();
 
         assert data != null;
 
@@ -174,6 +174,6 @@ public class PlatformDotnetSessionSetAndUnlockProcessor implements
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(PlatformDotnetSessionSetAndUnlockProcessor.class, this);
+        return S.toString(PlatformDotNetSessionSetAndUnlockProcessor.class, this);
     }
 }

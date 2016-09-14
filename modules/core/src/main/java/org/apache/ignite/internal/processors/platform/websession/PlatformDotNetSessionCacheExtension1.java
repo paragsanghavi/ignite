@@ -32,7 +32,7 @@ import java.util.UUID;
 /**
  * Custom entry processor invoker.
  */
-public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtension {
+public class PlatformDotNetSessionCacheExtension implements PlatformCacheExtension {
     /** Extension ID. */
     private static final int EXT_ID = 0;
 
@@ -67,8 +67,8 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
                 long lockId = reader.readLong();
                 Timestamp lockTime = reader.readTimestamp();
 
-                final PlatformDotnetSessionLockResult res = (PlatformDotnetSessionLockResult)
-                    target.rawCache().invoke(key, new PlatformDotnetSessionLockProcessor(lockNodeId, lockId, lockTime));
+                final PlatformDotNetSessionLockResult res = (PlatformDotNetSessionLockResult)
+                    target.rawCache().invoke(key, new PlatformDotNetSessionLockProcessor(lockNodeId, lockId, lockTime));
 
                 return target.writeResult(mem, res, new PlatformWriterClosure() {
                     @Override public void write(BinaryRawWriterEx writer, Object val) {
@@ -80,20 +80,20 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
             case OP_SET_AND_UNLOCK: {
                 String key = reader.readString();
 
-                PlatformDotnetSessionSetAndUnlockProcessor proc;
+                PlatformDotNetSessionSetAndUnlockProcessor proc;
 
                 if (reader.readBoolean()) {
-                    PlatformDotnetSessionData data = new PlatformDotnetSessionData();
+                    PlatformDotNetSessionData data = new PlatformDotNetSessionData();
 
                     data.readBinary(reader);
 
-                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(data);
+                    proc = new PlatformDotNetSessionSetAndUnlockProcessor(data);
                 }
                 else {
                     UUID lockNodeId = reader.readUuid();
                     long lockId = reader.readLong();
 
-                    proc = new PlatformDotnetSessionSetAndUnlockProcessor(lockNodeId, lockId);
+                    proc = new PlatformDotNetSessionSetAndUnlockProcessor(lockNodeId, lockId);
                 }
 
                 target.rawCache().invoke(key, proc);
@@ -104,7 +104,7 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
             case OP_GET: {
                 String key = reader.readString();
 
-                final PlatformDotnetSessionData data = (PlatformDotnetSessionData)target.rawCache().get(key);
+                final PlatformDotNetSessionData data = (PlatformDotNetSessionData)target.rawCache().get(key);
 
                 return target.writeResult(mem, data, new PlatformWriterClosure() {
                     @Override public void write(BinaryRawWriterEx writer, Object val) {
@@ -116,7 +116,7 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
             case OP_PUT: {
                 String key = reader.readString();
 
-                PlatformDotnetSessionData data = new PlatformDotnetSessionData();
+                PlatformDotNetSessionData data = new PlatformDotNetSessionData();
 
                 data.readBinary(reader);
 
@@ -139,6 +139,6 @@ public class PlatformDotnetSessionCacheExtension implements PlatformCacheExtensi
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(PlatformDotnetSessionCacheExtension.class, this);
+        return S.toString(PlatformDotNetSessionCacheExtension.class, this);
     }
 }
