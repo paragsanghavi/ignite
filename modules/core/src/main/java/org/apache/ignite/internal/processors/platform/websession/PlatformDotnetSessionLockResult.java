@@ -28,15 +28,15 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 import java.sql.Timestamp;
 
 /**
- * Result of the {@link PlatformDotnetSessionLockProcessor} execution.
+ * Result of the {@link PlatformDotNetSessionLockProcessor} execution.
  */
 @SuppressWarnings({"AssignmentToDateFieldFromParameter", "ReturnOfDateField"})
-public class PlatformDotnetSessionLockResult implements Binarylizable {
+public class PlatformDotNetSessionLockResult implements Binarylizable {
     /** Success flag. */
     private boolean success;
 
     /** Data. */
-    private PlatformDotnetSessionData data;
+    private PlatformDotNetSessionData data;
 
     /** Lock time. */
     private Timestamp lockTime;
@@ -48,7 +48,7 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
      * @param data Session data.
      * @param lockTime Lock time.
      */
-    public PlatformDotnetSessionLockResult(boolean success, PlatformDotnetSessionData data, Timestamp lockTime) {
+    public PlatformDotNetSessionLockResult(boolean success, PlatformDotNetSessionData data, Timestamp lockTime) {
         assert success ^ (data == null);
 
         this.success = success;
@@ -84,7 +84,7 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
         success = raw.readBoolean();
 
         if (success) {
-            data = new PlatformDotnetSessionData();
+            data = new PlatformDotNetSessionData();
 
             data.readBinary(raw);
         }
@@ -94,6 +94,6 @@ public class PlatformDotnetSessionLockResult implements Binarylizable {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(PlatformDotnetSessionLockResult.class, this);
+        return S.toString(PlatformDotNetSessionLockResult.class, this);
     }
 }

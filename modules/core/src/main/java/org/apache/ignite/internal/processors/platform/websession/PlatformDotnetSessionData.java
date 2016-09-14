@@ -35,7 +35,7 @@ import java.util.UUID;
  * Web session state data.
  */
 @SuppressWarnings({"ReturnOfDateField", "AssignmentToDateFieldFromParameter"})
-public class PlatformDotnetSessionData implements Binarylizable {
+public class PlatformDotNetSessionData implements Binarylizable {
     /** Items. */
     private Map<String, byte[]> items;
 
@@ -123,10 +123,10 @@ public class PlatformDotnetSessionData implements Binarylizable {
      *
      * @return Unlocked data copy.
      */
-    public PlatformDotnetSessionData lock(UUID lockNodeId, long lockId, Timestamp lockTime) {
+    public PlatformDotNetSessionData lock(UUID lockNodeId, long lockId, Timestamp lockTime) {
         assert !isLocked();
 
-        PlatformDotnetSessionData res = copyWithoutLockInfo();
+        PlatformDotNetSessionData res = copyWithoutLockInfo();
 
         res.lockId = lockId;
         res.lockNodeId = lockNodeId;
@@ -143,7 +143,7 @@ public class PlatformDotnetSessionData implements Binarylizable {
      *
      * @return Unlocked data copy.
      */
-    public PlatformDotnetSessionData unlock(UUID lockNodeId, long lockId) {
+    public PlatformDotNetSessionData unlock(UUID lockNodeId, long lockId) {
         assert isLocked();
 
         if (!this.lockNodeId.equals(lockNodeId))
@@ -166,11 +166,11 @@ public class PlatformDotnetSessionData implements Binarylizable {
      * @param timeout Timeout.
      * @return Result.
      */
-    public PlatformDotnetSessionData updateAndUnlock(UUID lockNodeId, long lockId, Map<String, byte[]> items,
+    public PlatformDotNetSessionData updateAndUnlock(UUID lockNodeId, long lockId, Map<String, byte[]> items,
         boolean isDiff, byte[] staticObjects, int timeout) {
         assert items != null;
 
-        PlatformDotnetSessionData res = unlock(lockNodeId, lockId);
+        PlatformDotNetSessionData res = unlock(lockNodeId, lockId);
 
         if (!isDiff) {
             // Not a diff: remove all
@@ -198,8 +198,8 @@ public class PlatformDotnetSessionData implements Binarylizable {
      *
      * @return Copied state data.
      */
-    private PlatformDotnetSessionData copyWithoutLockInfo() {
-        PlatformDotnetSessionData res = new PlatformDotnetSessionData();
+    private PlatformDotNetSessionData copyWithoutLockInfo() {
+        PlatformDotNetSessionData res = new PlatformDotNetSessionData();
 
         res.staticObjects = staticObjects;
         res.items = items;
@@ -268,6 +268,6 @@ public class PlatformDotnetSessionData implements Binarylizable {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return S.toString(PlatformDotnetSessionData.class, this);
+        return S.toString(PlatformDotNetSessionData.class, this);
     }
 }

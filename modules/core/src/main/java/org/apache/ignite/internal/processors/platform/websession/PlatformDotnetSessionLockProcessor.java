@@ -29,7 +29,7 @@ import java.util.UUID;
  * Entry processor that locks web session data.
  */
 @SuppressWarnings("AssignmentToDateFieldFromParameter")
-public class PlatformDotnetSessionLockProcessor implements CacheEntryProcessor<String, PlatformDotnetSessionData, Object> {
+public class PlatformDotNetSessionLockProcessor implements CacheEntryProcessor<String, PlatformDotNetSessionData, Object> {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -49,24 +49,24 @@ public class PlatformDotnetSessionLockProcessor implements CacheEntryProcessor<S
      * @param lockId Lock id.
      * @param lockTime Lock time.
      */
-    public PlatformDotnetSessionLockProcessor(UUID lockNodeId, long lockId, Timestamp lockTime) {
+    public PlatformDotNetSessionLockProcessor(UUID lockNodeId, long lockId, Timestamp lockTime) {
         this.lockNodeId = lockNodeId;
         this.lockId = lockId;
         this.lockTime = lockTime;
     }
 
     /** {@inheritDoc} */
-    @Override public Object process(MutableEntry<String, PlatformDotnetSessionData> entry, Object... args)
+    @Override public Object process(MutableEntry<String, PlatformDotNetSessionData> entry, Object... args)
         throws EntryProcessorException {
         if (!entry.exists())
             return null;
 
-        PlatformDotnetSessionData data = entry.getValue();
+        PlatformDotNetSessionData data = entry.getValue();
 
         assert data != null;
 
         if (data.isLocked())
-            return new PlatformDotnetSessionLockResult(false, null, data.lockTime());
+            return new PlatformDotNetSessionLockResult(false, null, data.lockTime());
 
         // Not locked: lock and return result
         data = data.lock(lockNodeId, lockId, lockTime);
@@ -74,11 +74,11 @@ public class PlatformDotnetSessionLockProcessor implements CacheEntryProcessor<S
         // Apply.
         entry.setValue(data);
 
-        return new PlatformDotnetSessionLockResult(true, data, null);
+        return new PlatformDotNetSessionLockResult(true, data, null);
     }
 
     /** {@inheritDoc */
     @Override public String toString() {
-        return S.toString(PlatformDotnetSessionLockProcessor.class, this);
+        return S.toString(PlatformDotNetSessionLockProcessor.class, this);
     }
 }

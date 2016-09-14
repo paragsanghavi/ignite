@@ -23,7 +23,7 @@ import org.apache.ignite.internal.processors.platform.cache.PlatformCacheExtensi
 import org.apache.ignite.internal.processors.platform.callback.PlatformCallbackGateway;
 import org.apache.ignite.internal.processors.platform.memory.PlatformMemoryManagerImpl;
 import org.apache.ignite.internal.processors.platform.utils.PlatformUtils;
-import org.apache.ignite.internal.processors.platform.websession.PlatformDotnetSessionCacheExtension;
+import org.apache.ignite.internal.processors.platform.websession.PlatformDotNetSessionCacheExtension;
 import org.apache.ignite.platform.dotnet.PlatformDotNetConfiguration;
 import org.jetbrains.annotations.Nullable;
 
@@ -89,7 +89,7 @@ public class PlatformDotNetConfigurationEx extends PlatformDotNetConfiguration i
 
     /** {@inheritDoc} */
     @Nullable @Override public Collection<PlatformCacheExtension> cacheExtensions() {
-        return Collections.<PlatformCacheExtension>singleton(new PlatformDotnetSessionCacheExtension());
+        return Collections.<PlatformCacheExtension>singleton(new PlatformDotNetSessionCacheExtension());
     }
 
     /**
