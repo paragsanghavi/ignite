@@ -39,9 +39,6 @@ public class PlatformDotNetSessionData implements Binarylizable {
     /** Items. */
     private Map<String, byte[]> items;
 
-    /** Diff flag. */
-    private boolean isDiff;
-
     /** Static objects. */
     @GridToStringExclude
     private byte[] staticObjects;
@@ -63,13 +60,6 @@ public class PlatformDotNetSessionData implements Binarylizable {
      */
     public Map<String, byte[]> items() {
         return items;
-    }
-
-    /**
-     * @return Diff flag.
-     */
-    public boolean isDiff() {
-        return isDiff;
     }
 
     /**
@@ -204,7 +194,6 @@ public class PlatformDotNetSessionData implements Binarylizable {
         res.staticObjects = staticObjects;
         res.items = items;
         res.timeout = timeout;
-        res.isDiff = isDiff;
 
         return res;
     }
@@ -222,7 +211,6 @@ public class PlatformDotNetSessionData implements Binarylizable {
      * @param writer Binary writer.
      */
     public void writeBinary(BinaryRawWriter writer) {
-        writer.writeBoolean(isDiff);
         writer.writeInt(items.size());
 
         for (Map.Entry<String, byte[]> e : items.entrySet()) {
@@ -252,7 +240,6 @@ public class PlatformDotNetSessionData implements Binarylizable {
      */
     public void readBinary(BinaryRawReader reader) {
         items = new TreeMap<>();
-        isDiff = reader.readBoolean();
         int count = reader.readInt();
 
         for (int i = 0; i < count; i++)

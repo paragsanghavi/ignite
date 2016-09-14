@@ -77,7 +77,7 @@ public class PlatformDotNetSessionSetAndUnlockProcessor implements
      * @param data Data.
      */
     public PlatformDotNetSessionSetAndUnlockProcessor(PlatformDotNetSessionData data) {
-        this(data.lockNodeId(), data.lockId(), true, data.items(), data.isDiff(), data.staticObjects(), data.timeout());
+        this(data.lockNodeId(), data.lockId(), true, data.items(), true, data.staticObjects(), data.timeout());
     }
 
     /**

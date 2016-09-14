@@ -45,9 +45,6 @@ namespace Apache.Ignite.AspNet.Impl
         /** Indicates where this is a new collection, not a deserialized old one. */
         private readonly bool _isNew;
 
-        /** Indicates that this instance is a diff. */
-        private readonly bool _isDiff;
-
         /** Removed keys. Hash set because keys can be removed multiple times. */
         private HashSet<string> _removedKeys;
 
@@ -61,8 +58,6 @@ namespace Apache.Ignite.AspNet.Impl
         internal IgniteSessionStateItemCollection(IBinaryRawReader reader)
         {
             Debug.Assert(reader != null);
-
-            _isDiff = reader.ReadBoolean();
 
             var count = reader.ReadInt();
 
@@ -204,14 +199,9 @@ namespace Apache.Ignite.AspNet.Impl
         {
             IgniteArgumentCheck.NotNull(writer, "writer");
 
-            if (_isDiff)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
-                    "Cannot serialize incomplete {0}.", GetType()));
-
             if (_isNew || _dirtyAll || !changesOnly || (_removedKeys == null && _list.All(x => x.IsDirty)))
             {
                 // Write in full mode.
-                writer.WriteBoolean(false);
                 writer.WriteInt(_list.Count);
 
                 foreach (var entry in _list)
@@ -225,8 +215,6 @@ namespace Apache.Ignite.AspNet.Impl
             else
             {
                 // Write in diff mode.
-                writer.WriteBoolean(true);
-
                 var removed = GetRemovedKeys();
 
                 var count = _list.Count(x => x.IsDirty) + (removed == null ? 0 : removed.Count);
@@ -341,7 +329,7 @@ namespace Apache.Ignite.AspNet.Impl
                 foreach (var key in removed)
                     Remove(key);
             }
-            else if (!changes._isDiff)
+            else
             {
                 // Not a diff: replace all.
                 Clear();
