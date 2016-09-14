@@ -21,6 +21,8 @@ namespace Apache.Ignite.AspNet.Tests
     using System.IO;
     using System.Linq;
     using Apache.Ignite.AspNet.Impl;
+    using Apache.Ignite.Core.Impl.Binary;
+    using Apache.Ignite.Core.Impl.Binary.IO;
     using NUnit.Framework;
 
     /// <summary>
