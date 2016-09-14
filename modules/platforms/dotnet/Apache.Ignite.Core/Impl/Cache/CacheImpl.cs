@@ -873,7 +873,7 @@ namespace Apache.Ignite.Core.Impl.Cache
         }
 
         /** <inheritDoc /> */
-        public T InvokeExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction, 
+        public T DoOutInOpExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction, 
             Func<IBinaryRawReader, T> readFunc)
         {
             return DoOutInOpX((int) CacheOp.Extension, writer =>

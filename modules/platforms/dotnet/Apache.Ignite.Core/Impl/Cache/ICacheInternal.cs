@@ -48,7 +48,7 @@ namespace Apache.Ignite.Core.Impl.Cache
         /// <returns>
         /// Result of the processing.
         /// </returns>
-        T InvokeExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction, 
+        T DoOutInOpExtension<T>(int extensionId, int opCode, Action<IBinaryRawWriter> writeAction, 
             Func<IBinaryRawReader, T> readFunc);
     }
 }

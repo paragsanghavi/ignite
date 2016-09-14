@@ -50,7 +50,7 @@ namespace Apache.Ignite.AspNet
         private const int ExtensionId = 0;
 
         /// <summary>
-        /// Op codes for <see cref="ICacheInternal.InvokeExtension{T}"/>.
+        /// Op codes for <see cref="ICacheInternal.DoOutInOpExtension{T}"/>.
         /// </summary>
         private enum Op
         {
@@ -535,7 +535,7 @@ namespace Apache.Ignite.AspNet
         {
             cache = cache ?? Cache;
 
-            return ((ICacheInternal) cache).InvokeExtension(ExtensionId, (int) op, writeAction, readFunc);
+            return ((ICacheInternal) cache).DoOutInOpExtension(ExtensionId, (int) op, writeAction, readFunc);
         }
     }
 }
