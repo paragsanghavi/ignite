@@ -16,13 +16,14 @@
  */
 
 // ReSharper disable UnusedAutoPropertyAccessor.Local
-namespace Apache.Ignite.Core.Tests.AspNet
+namespace Apache.Ignite.AspNet.Tests
 {
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Apache.Ignite.AspNet.Impl;
+    using Apache.Ignite.Core;
     using Apache.Ignite.Core.Cache;
     using Apache.Ignite.Core.Cache.Configuration;
     using Apache.Ignite.Core.Cache.Expiry;

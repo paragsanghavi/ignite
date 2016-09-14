@@ -15,15 +15,13 @@
  * limitations under the License.
  */
 
-namespace Apache.Ignite.Core.Tests.AspNet
+namespace Apache.Ignite.AspNet.Tests
 {
     using System;
     using System.IO;
     using System.Reflection;
     using System.Web;
     using Apache.Ignite.AspNet.Impl;
-    using Apache.Ignite.Core.Impl.Binary;
-    using Apache.Ignite.Core.Impl.Binary.IO;
     using NUnit.Framework;
 
     /// <summary>
