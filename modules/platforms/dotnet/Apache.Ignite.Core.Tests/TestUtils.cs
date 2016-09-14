@@ -27,7 +27,6 @@ namespace Apache.Ignite.Core.Tests
     using Apache.Ignite.Core.Discovery.Tcp;
     using Apache.Ignite.Core.Discovery.Tcp.Static;
     using Apache.Ignite.Core.Impl;
-    using Apache.Ignite.Core.Impl.Binary;
     using Apache.Ignite.Core.Impl.Common;
     using Apache.Ignite.Core.Tests.Process;
     using NUnit.Framework;
@@ -351,6 +350,7 @@ namespace Apache.Ignite.Core.Tests
         {
             var procStart = new ProcessStartInfo
             {
+                // ReSharper disable once AssignNullToNotNullAttribute
                 FileName = typeof(TestUtils).Assembly.Location,
                 Arguments = fixtureName + " " + testName,
                 CreateNoWindow = true,
