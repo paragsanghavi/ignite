@@ -375,8 +375,6 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
         if (res != null)
             return res;
 
-        System.out.println(">>> EXT: " + clsName);
-
         // Try to get from parent to check if the type accessible.
         InputStream in = loadClassBytes(getParent(), clsName);
 
@@ -389,10 +387,8 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
             rdr = new ClassReader(in);
         }
         catch (Exception e) {
-            System.out.println(">>> ERR: " + clsName);
-
+            // Most probably we tried to load a class from rt.jar, so ignore.
             return false;
-            //throw new RuntimeException("Failed to read class: " + clsName, e);
         }
 
         ctx.visited.add(clsName);
