@@ -434,11 +434,17 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
 
         // 3. Special handling for "org.apache"
         if (cls.startsWith("org.apache.")) {
-            if (cls.startsWith("org.apache.ignite"))
-                return cls.contains(".hadoop.") || cls.contains(".igfs.") || cls.contains(".fs.");
+            if (cls.startsWith("org.apache.ignite")) {
+                if (!cls.contains(".hadoop.") && !cls.contains(".igfs.") && !cls.contains(".fs."))
+                    return false;
+            }
 
             if (cls.startsWith("org.apache.hadoop"))
                 return true;
+
+            if (cls.startsWith("org.apache.xerces") || cls.startsWith("org.apache.log4j") || cls.startsWith("org.apache.commons.logging") || cls.startsWith("org.apache.commons.lang") || cls.startsWith("org.apache.commons.collections")
+                || cls.startsWith("org.apache.commons.configuration"))
+                return false;
         }
 
         // No more guesses, will parse the class.
