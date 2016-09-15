@@ -441,44 +441,39 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
         // Large "org" group.
         if (cls.startsWith(PKG_ORG)) {
             // Large "apache" group.
-            if (cls.startsWith(PKG_ORG_APACHE)) {
+            if (startsWith(cls, PKG_ORG, "apache.")) {
                 // Hadoop classes always have dependencies.
                 if (startsWith(cls, PKG_ORG_APACHE, "hadoop."))
                     return true;
-
                 // Filter out Ignite classes which definitely do not have dependencies.
-                if (startsWith(cls, PKG_ORG_APACHE, "ignite.")) {
+                else if (startsWith(cls, PKG_ORG_APACHE, "ignite.")) {
                     if (!cls.contains(".hadoop.") && !cls.contains(".igfs.") && !cls.contains(".fs."))
                         return false;
                 }
-
                 // Other well-known "org.apache" packages.
-                if (startsWith(cls, PKG_ORG_APACHE, "commons.") ||
+                else if (startsWith(cls, PKG_ORG_APACHE, "commons.") ||
                     startsWith(cls, PKG_ORG_APACHE, "log4j.") ||
                     startsWith(cls, PKG_ORG_APACHE, "xerces."))
                     return false;
             }
-
             // Other well-known "org" packages.
-            if (startsWith(cls, PKG_ORG, "jsr166.") ||
+            else if (startsWith(cls, PKG_ORG, "jsr166.") ||
                 startsWith(cls, PKG_ORG, "w3c.") ||
                 startsWith(cls, PKG_ORG, "slf4j.") ||
                 startsWith(cls, PKG_ORG, "xml.sax."))
                 return false;
         }
-
         // Filter out Java system packages.
-        if (cls.startsWith("java.") ||
+        else if (cls.startsWith("java.") ||
             cls.startsWith("javax.") ||
             cls.startsWith("sun.") ||
             cls.startsWith("com.sun."))
             return false;
-
         // Other well-known packages.
-        if (cls.startsWith("com.google.common"))
+        else if (cls.startsWith("com.google.common"))
             return false;
 
-        // No more guesses, will parse the class.
+        // Will parse class.
         return null;
     }
 
