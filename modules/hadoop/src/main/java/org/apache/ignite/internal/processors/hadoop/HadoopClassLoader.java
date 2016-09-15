@@ -410,12 +410,26 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
 
         String parentCls = clsName.substring(0, idx);
 
-        // TODO: Looks suspicious.
-        if (ctx.visited.contains(parentCls))
-            return false;
-
         return hasExternalDependencies(parentCls, ctx);
     }
+
+    /**
+     * Check whether class name starts with particular prefix.
+     *
+     * @param cls Class name.
+     * @param skip Prefix to skip.
+     * @param prefix Prefix.
+     * @return {@code True} if starts with.
+     */
+    private static boolean startsWith(String cls, String skip, String prefix) {
+        assert cls.startsWith(skip);
+
+        return cls.startsWith(prefix, skip.length());
+    }
+
+    private static final String PKG_ORG = "org.";
+
+    private static final String PKG_ORG_APACHE = "org.apache.";
 
     /**
      * Whether we know in advance whether class has dependency or not.
@@ -424,28 +438,45 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
      * @return Result.
      */
     @Nullable private static Boolean hasDependencyPredefined(String cls) {
-        // 1. Java systm classes never has dependencies.
-        if (cls.startsWith("java.") || cls.startsWith("javax.") || cls.startsWith("sun.") || cls.startsWith("com.sun."))
-            return false;
+        // Large "org" group.
+        if (cls.startsWith(PKG_ORG)) {
+            // Large "apache" group.
+            if (cls.startsWith(PKG_ORG_APACHE)) {
+                // Hadoop classes always have dependencies.
+                if (startsWith(cls, PKG_ORG_APACHE, "hadoop."))
+                    return true;
 
-        // 2. Some other well-known packages.
-        if (cls.startsWith("org.jsr166.") ||  cls.startsWith("org.w3c.") || cls.startsWith("org.xml.sax.") || cls.startsWith("org.slf4j.") || cls.startsWith("com.google.common."))
-            return false;
+                // Filter out Ignite classes which definitely do not have dependencies.
+                if (startsWith(cls, PKG_ORG_APACHE, "ignite.")) {
+                    if (!cls.contains(".hadoop.") && !cls.contains(".igfs.") && !cls.contains(".fs."))
+                        return false;
+                }
 
-        // 3. Special handling for "org.apache"
-        if (cls.startsWith("org.apache.")) {
-            if (cls.startsWith("org.apache.ignite")) {
-                if (!cls.contains(".hadoop.") && !cls.contains(".igfs.") && !cls.contains(".fs."))
+                // Other well-known "org.apache" packages.
+                if (startsWith(cls, PKG_ORG_APACHE, "commons.") ||
+                    startsWith(cls, PKG_ORG_APACHE, "log4j.") ||
+                    startsWith(cls, PKG_ORG_APACHE, "xerces."))
                     return false;
             }
 
-            if (cls.startsWith("org.apache.hadoop"))
-                return true;
-
-            if (cls.startsWith("org.apache.xerces") || cls.startsWith("org.apache.log4j") || cls.startsWith("org.apache.commons.logging") || cls.startsWith("org.apache.commons.lang") || cls.startsWith("org.apache.commons.collections")
-                || cls.startsWith("org.apache.commons.configuration"))
+            // Other well-known "org" packages.
+            if (startsWith(cls, PKG_ORG, "jsr166.") ||
+                startsWith(cls, PKG_ORG, "w3c.") ||
+                startsWith(cls, PKG_ORG, "slf4j.") ||
+                startsWith(cls, PKG_ORG, "xml.sax."))
                 return false;
         }
+
+        // Filter out Java system packages.
+        if (cls.startsWith("java.") ||
+            cls.startsWith("javax.") ||
+            cls.startsWith("sun.") ||
+            cls.startsWith("com.sun."))
+            return false;
+
+        // Other well-known packages.
+        if (cls.startsWith("com.google.common"))
+            return false;
 
         // No more guesses, will parse the class.
         return null;
