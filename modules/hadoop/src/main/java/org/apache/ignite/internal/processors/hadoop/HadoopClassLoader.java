@@ -61,13 +61,11 @@ import org.objectweb.asm.commons.RemappingClassAdapter;
  * unavailable for parent.
  */
 public class HadoopClassLoader extends URLClassLoader implements ClassCache {
-    static {
-        // We are very parallel capable.
-        registerAsParallelCapable();
-    }
+    /** Name of the Hadoop shutdown hook manager class. */
+    public static final String SHUTDOWN_HOOK_MGR_CLS_NAME = "org.apache.hadoop.util.ShutdownHookManager";
 
     /** Name of the Hadoop daemon class. */
-    public static final String HADOOP_DAEMON_CLASS_NAME = "org.apache.hadoop.util.Daemon";
+    public static final String HADOOP_DAEMON_CLS_NAME = "org.apache.hadoop.util.Daemon";
 
     /** Name of libhadoop library. */
     private static final String LIBHADOOP = "hadoop.";
@@ -96,6 +94,11 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
 
     /** Native library names. */
     private final String[] libNames;
+
+    static {
+        // We are very parallel capable.
+        registerAsParallelCapable();
+    }
 
     /**
      * Gets name for Job class loader. The name is specific for local node id.
@@ -192,57 +195,19 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
         }
     }
 
-    /**
-     * Need to parse only Ignite Hadoop and IGFS classes.
-     *
-     * @param cls Class name.
-     * @return {@code true} if we need to check this class.
-     */
-    private static boolean isHadoopIgfs(String cls) {
-        String ignitePkgPrefix = "org.apache.ignite";
-
-        int len = ignitePkgPrefix.length();
-
-        return cls.startsWith(ignitePkgPrefix) && (
-            cls.indexOf("igfs.", len) != -1 ||
-            cls.indexOf(".fs.", len) != -1 ||
-            cls.indexOf("hadoop.", len) != -1);
-    }
-
-    /**
-     * @param cls Class name.
-     * @return {@code true} If this is Hadoop class.
-     */
-    private static boolean isHadoop(String cls) {
-        return cls.startsWith("org.apache.hadoop.");
-    }
-
     /** {@inheritDoc} */
     @Override protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         try {
-            if (isHadoop(name)) { // Always load Hadoop classes explicitly, since Hadoop can be available in App classpath.
-                if (name.endsWith(".util.ShutdownHookManager"))  // Dirty hack to get rid of Hadoop shutdown hooks.
-                    return loadFromBytes(name, HadoopShutdownHookManager.class.getName());
-                else if (name.equals(HADOOP_DAEMON_CLASS_NAME))
-                    // We replace this in order to be able to forcibly stop some daemon threads
-                    // that otherwise never stop (e.g. PeerCache runnables):
-                    return loadFromBytes(name, HadoopDaemon.class.getName());
+            if (name.equals(SHUTDOWN_HOOK_MGR_CLS_NAME))
+                // Dirty hack to get rid of Hadoop shutdown hooks.
+                return loadFromBytes(name, HadoopShutdownHookManager.class.getName());
+            else if (name.equals(HADOOP_DAEMON_CLS_NAME))
+                // We replace this in order to be able to forcibly stop some daemon threads
+                // that otherwise never stop (e.g. PeerCache runnables):
+                return loadFromBytes(name, HadoopDaemon.class.getName());
 
+            if (hasExternalDependencies(name))
                 return loadClassExplicitly(name, resolve);
-            }
-
-            if (isHadoopIgfs(name)) { // For Ignite Hadoop and IGFS classes we have to check if they depend on Hadoop.
-                Boolean hasDeps = cache.get(name);
-
-                if (hasDeps == null) {
-                    hasDeps = hasExternalDependencies(name);
-
-                    cache.put(name, hasDeps);
-                }
-
-                if (hasDeps)
-                    return loadClassExplicitly(name, resolve);
-            }
 
             return super.loadClass(name, resolve);
         }
@@ -362,14 +327,39 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
      * @return {@code True} if class has external dependencies.
      */
     boolean hasExternalDependencies(String clsName) {
-        CollectingContext ctx = new CollectingContext();
+        Boolean res = cache.get(clsName);
 
-        ctx.annVisitor = new CollectingAnnotationVisitor(ctx);
-        ctx.mthdVisitor = new CollectingMethodVisitor(ctx, ctx.annVisitor);
-        ctx.fldVisitor = new CollectingFieldVisitor(ctx, ctx.annVisitor);
-        ctx.clsVisitor = new CollectingClassVisitor(ctx, ctx.annVisitor, ctx.mthdVisitor, ctx.fldVisitor);
+        if (res == null) {
+            CollectingContext ctx = new CollectingContext();
 
-        return hasExternalDependencies(clsName, ctx);
+            ctx.annVisitor = new CollectingAnnotationVisitor(ctx);
+            ctx.mthdVisitor = new CollectingMethodVisitor(ctx, ctx.annVisitor);
+            ctx.fldVisitor = new CollectingFieldVisitor(ctx, ctx.annVisitor);
+            ctx.clsVisitor = new CollectingClassVisitor(ctx, ctx.annVisitor, ctx.mthdVisitor, ctx.fldVisitor);
+
+            return hasExternalDependencies(clsName, ctx);
+        }
+        else
+            return res;
+    }
+
+    /**
+     * Check whether class has external dependencies on Hadoop.
+     *
+     * @param clsName Class name.
+     * @param ctx Context.
+     * @return {@code True} if class has external dependencies.
+     */
+    private boolean hasExternalDependencies(String clsName, CollectingContext ctx) {
+        Boolean res = cache.get(clsName);
+
+        if (res == null) {
+            res = hasExternalDependencies0(clsName, ctx);
+
+            cache.put(clsName, res);
+        }
+
+        return res;
     }
 
     /**
@@ -379,9 +369,13 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
      * @param ctx Context.
      * @return {@code true} If the class has external dependencies.
      */
-    boolean hasExternalDependencies(String clsName, CollectingContext ctx) {
-        if (isHadoop(clsName)) // Hadoop must not be in classpath but Idea sucks, so filtering explicitly as external.
-            return true;
+    private boolean hasExternalDependencies0(String clsName, CollectingContext ctx) {
+        Boolean res = hasDependencyPredefined(clsName);
+
+        if (res != null)
+            return res;
+
+        System.out.println(">>> EXT: " + clsName);
 
         // Try to get from parent to check if the type accessible.
         InputStream in = loadClassBytes(getParent(), clsName);
@@ -389,16 +383,16 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
         if (in == null) // The class is external itself, it must be loaded from this class loader.
             return true;
 
-        if (!isHadoopIgfs(clsName)) // Other classes should not have external dependencies.
-            return false;
-
         final ClassReader rdr;
 
         try {
             rdr = new ClassReader(in);
         }
-        catch (IOException e) {
-            throw new RuntimeException("Failed to read class: " + clsName, e);
+        catch (Exception e) {
+            System.out.println(">>> ERR: " + clsName);
+
+            return false;
+            //throw new RuntimeException("Failed to read class: " + clsName, e);
         }
 
         ctx.visited.add(clsName);
@@ -416,15 +410,39 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
 
         String parentCls = clsName.substring(0, idx);
 
+        // TODO: Looks suspicious.
         if (ctx.visited.contains(parentCls))
             return false;
 
-        Boolean res = cache.get(parentCls);
+        return hasExternalDependencies(parentCls, ctx);
+    }
 
-        if (res == null)
-            res = hasExternalDependencies(parentCls, ctx);
+    /**
+     * Whether we know in advance whether class has dependency or not.
+     *
+     * @param cls Class.
+     * @return Result.
+     */
+    @Nullable private static Boolean hasDependencyPredefined(String cls) {
+        // 1. Java systm classes never has dependencies.
+        if (cls.startsWith("java.") || cls.startsWith("javax.") || cls.startsWith("sun.") || cls.startsWith("com.sun."))
+            return false;
 
-        return res;
+        // 2. Some other well-known packages.
+        if (cls.startsWith("org.jsr166.") ||  cls.startsWith("org.w3c.") || cls.startsWith("org.xml.sax.") || cls.startsWith("org.slf4j.") || cls.startsWith("com.google.common."))
+            return false;
+
+        // 3. Special handling for "org.apache"
+        if (cls.startsWith("org.apache.")) {
+            if (cls.startsWith("org.apache.ignite"))
+                return cls.contains(".hadoop.") || cls.contains(".igfs.") || cls.contains(".fs.");
+
+            if (cls.startsWith("org.apache.hadoop"))
+                return true;
+        }
+
+        // No more guesses, will parse the class.
+        return null;
     }
 
     /**
@@ -571,9 +589,6 @@ public class HadoopClassLoader extends URLClassLoader implements ClassCache {
             assert depCls.indexOf('/') == -1 : depCls; // class name should be fully converted to dot notation.
             assert depCls.charAt(0) != 'L' : depCls;
             assert validateClassName(depCls) : depCls;
-
-            if (depCls.startsWith("java.") || depCls.startsWith("javax.")) // Filter out platform classes.
-                return;
 
             if (visited.contains(depCls))
                 return;

@@ -277,6 +277,9 @@ public class HadoopUtils {
         for (Map.Entry<String, String> entry : jobConf)
             props.put(entry.getKey(), entry.getValue());
 
+        props.put("fs.defaultFS", "dummy:///test/");
+        props.put("fs.dummy.impl", "com.mapr.DummyFileSystem");
+
         return new HadoopDefaultJobInfo(jobConf.getJobName(), jobConf.getUser(), hasCombiner, numReduces, props);
     }
 
